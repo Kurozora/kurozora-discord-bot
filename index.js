@@ -74,8 +74,8 @@ client.on('messageCreate', async message => {
 			return message.channel.send(`Please provide a title.`, { ephemeral: true });
 		}
 
-		const anime = await find(args)
-		message.channel.send(anime)
+		const reply = await find(args)
+		message.channel.send(reply);
 		return
 	} else {
 		message.channel.send("You need to enter a valid command!")
@@ -108,8 +108,8 @@ client.on('interactionCreate', async interaction => {
 		return
 	} else if (commandName === 'find') {
 		await interaction.deferReply()
-		const data = await find(interaction.options.getString('title'))
-		interaction.editReply(data)
+		const reply = await find(interaction.options.getString('title'))
+		interaction.editReply(reply)
 		return
 	}
 })
@@ -119,23 +119,215 @@ client.on('interactionCreate', async interaction => {
 async function find(query) {
 	const data = await axios.get('https://api.kurozora.app/v1/anime/search', {
 		params: {
-			'query': query
+			'query': query,
+			'limit': 1
 		}
 	})
 		.then(function(response) {
 			const { data } = response.data
 
 			if (data.length != 0) {
-				return `https://kurozora.app/anime/${data[0].attributes.slug}`
+				let animeEmbed = generateEmbedFor(data[0])
+				return { embeds: [animeEmbed] }
 			}
 
-			return `No results were found for ${query} :(`;
+			return `No results were found for ${query} :(`
 		})
 		.catch(function(error) {
 			console.log(error);
 		})
 
 	return data
+}
+
+/** Generates a message embed for the given anime. */
+function generateEmbedFor(anime) {
+	const poster = anime.attributes.poster
+	const banner = anime.attributes.banner
+	const kurozoraUrl = `https://kurozora.app/anime/${anime.attributes.slug}`
+	const copyright = anime.attributes.copyright
+	const broadcast = getBroadcast(anime)
+	const aired = getAirDates(anime)
+	const airSeasonEmoji = getAirSeasonEmoji(anime)
+	const rating = getRating(anime)
+
+	const messageEmbed = new MessageEmbed()
+		.setColor('#0099ff')
+		.setTitle(anime.attributes.title)
+		.setURL(kurozoraUrl)
+		// .setAuthor({
+		// 	name: anime.,
+		// 	iconURL: 'https://i.imgur.com/AfFp7pu.png',
+		// 	url: 'https://discord.js.org'
+		// })
+		.setDescription(anime.attributes.synopsis)
+
+	if (poster) {
+		messageEmbed.setThumbnail(poster.url)
+	}
+
+	messageEmbed.addFields(
+		{
+			name: '⏳ Status',
+			value: anime.attributes.status.name,
+			inline: true
+		},
+		{
+			name: `${airSeasonEmoji} Season`,
+			value: anime.attributes.airSeason,
+			inline: true
+		},
+		{
+			name: '📺 Type',
+			value: anime.attributes.type.name,
+			inline: true
+		},
+		{
+			name: '🎯 Source',
+			value: anime.attributes.source.name,
+			inline: true
+		},
+		{
+			name: '🔣 TV Rating',
+			value: anime.attributes.tvRating.name,
+			inline: true
+		},
+		{
+			name: '\u200B',
+			value: '\u200B',
+			inline: true
+		},
+		{
+			name: '🎭 Genres',
+			value: anime.attributes.genres?.join(', ')
+		},
+		{
+			name: '🎡 Themes',
+			value: anime.attributes.themes?.join(', ')
+		}
+	)
+
+	if (broadcast) {
+		messageEmbed.addField('📡 Broadcast', broadcast, true)
+	}
+
+	if (aired) {
+		messageEmbed.addField('📆 Aired', aired, true)
+	}
+
+	messageEmbed.addFields(
+		{
+			name: '\u200B',
+			value: '\u200B',
+			inline: true
+		},
+		{
+			name: '🧂 Seasons',
+			value: `${anime.attributes.seasonCount}`,
+			inline: true
+		},
+		{
+			name: '🎞 Episodes',
+			value: `${anime.attributes.episodeCount}`,
+			inline: true
+		},
+		{
+			name: '⏱ Duration',
+			value: anime.attributes.duration,
+			inline: true
+		},
+		{
+			name: '⏱ Duration Total',
+			value: anime.attributes.durationTotal,
+		}
+	)
+
+	if (rating) {
+		messageEmbed.addField('⭐️ Rating', rating)
+	}
+
+	if (banner) {
+		messageEmbed.setImage(banner.url)
+	}
+
+	if (anime.attributes.copyright) {
+		messageEmbed.setFooter({
+			text: anime.attributes.copyright,
+		})
+	}
+
+	return messageEmbed
+}
+
+/** Get the broadcast of the given anime. */
+function getBroadcast(anime) {
+	var broadcast = ''
+	const airDay = anime.attributes.airDay
+	const airTime = anime.attributes.airTime
+
+	if (airDay) {
+		broadcast += `${airDay} `
+	}
+
+	if (airTime) {
+		broadcast += `at ${airTime}UTC`
+	}
+	
+	return broadcast
+}
+
+/** Get the air dates of the given anime. */
+function getAirDates(anime) {
+	var aired = ''
+	const firstAired = anime.attributes.firstAired
+	const lastAired = anime.attributes.lastAired
+
+	if (firstAired) {
+		const date = new Date(firstAired * 1000).toLocaleDateString('en-US', {year: "numeric", month: "short", day: "numeric"})
+		aired += `🚀 ${date}`
+	}
+
+	if (lastAired) {
+		const date = new Date(lastAired * 1000).toLocaleDateString('en-US', {year: "numeric", month: "short", day: "numeric"})
+		aired += `\n╰╍╍╍╍╍╍╍╍╮\n${date} 🏁`
+	}
+
+	return aired
+}
+
+/** Get the air season emoji of the given anime. */
+function getAirSeasonEmoji(anime) {
+	switch(anime.attributes.airSeason) {
+		case 'Spring':
+			return '🍃'
+		case 'Summer':
+			return '☀️'
+		case 'Fall':
+			return '🍁'
+		default:
+			return '❄️'
+	}
+}
+
+/** Get the rating of the given anime. */
+function getRating(anime) {
+	var rating = null
+	const stats = anime.attributes.stats
+
+	if (stats) {
+		rating = `**${stats.ratingAverage}**/5.0 with **${abbreviateNumber(stats.ratingCount)}** Ratings`
+	}
+	
+	return rating
+}
+
+/** Abbreviates the given number to a more readable value. */
+function abbreviateNumber(value) {
+    return Intl.NumberFormat('en-US', {
+	    maximumFractionDigits: 1,
+	    notation: "compact", 
+	    compactDisplay: "short"
+	}).format(value)
 }
 
 // Login client
