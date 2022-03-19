@@ -152,7 +152,6 @@ function generateEmbedFor(anime) {
 	const rating = getRating(anime)
 
 	const messageEmbed = new MessageEmbed()
-		.setColor('#0099ff')
 		.setTitle(anime.attributes.title)
 		.setURL(kurozoraUrl)
 		// .setAuthor({
@@ -164,6 +163,9 @@ function generateEmbedFor(anime) {
 
 	if (poster) {
 		messageEmbed.setThumbnail(poster.url)
+		.setColor(poster.backgroundColor)
+	} else {
+		messageEmbed.setColor('#ff9300')
 	}
 
 	messageEmbed.addFields(
