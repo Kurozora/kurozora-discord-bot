@@ -1,36 +1,38 @@
 const axios = require('axios')
 const fs = require('fs')
-
 const { Client, Intents, MessageEmbed, Constants } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
+
+// MARK: - Properties
+const prefix = 'k!'
+const token = process.env['token']
+const appID = process.env['app_id']
+
+const commands = []
+const commandFiles = fs.readdirSync('./commands')
+	.filter(file => file.endsWith('.js'))
+
 const client = new Client({
 	intents: [
 		Intents.FLAGS.GUILDS,
 		Intents.FLAGS.GUILD_MESSAGES
 	]
 })
+const rest = new REST({ version: '9' })
+	.setToken(token);
 
-const prefix = 'k!'
-const token = process.env['token']
-
-const commands = []
-const commandFiles = fs.readdirSync('./commands')
-	.filter(file => file.endsWith('.js'))
-
+// Add commands
 for (const file of commandFiles) {
 	const command = require(`./commands/${file}`)
 	commands.push(command.data.toJSON())
 }
 
-const rest = new REST({ version: '9' })
-	.setToken(token);
-
 (async () => {
 	try {
 		console.log('Started refreshing application (/) commands.')
 		await rest.put(
-			Routes.applicationCommands(process.env['app_id']),
+			Routes.applicationCommands(appID),
 			{
 				body: commands
 			},
@@ -41,6 +43,7 @@ const rest = new REST({ version: '9' })
 	}
 })()
 
+// MARK: - Listeners
 /** Runs one when the bot is online. */
 client.once('ready', c => {
 	console.log(`🚀 [${c.user.tag}] Running...`)
@@ -111,6 +114,7 @@ client.on('interactionCreate', async interaction => {
 	}
 })
 
+// MARK: - Functions
 /** Find the requested anime on Kurozora.app */
 async function find(query) {
 	const data = await axios.get('https://api.kurozora.app/v1/anime/search', {
