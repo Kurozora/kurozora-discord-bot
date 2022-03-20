@@ -150,6 +150,8 @@ function generateEmbedFor(anime) {
 	const aired = getAirDates(anime)
 	const airSeasonEmoji = getAirSeasonEmoji(anime)
 	const rating = getRating(anime)
+	const genres = getGenres(anime)
+	const themes = getThemes(anime)
 
 	const messageEmbed = new MessageEmbed()
 		.setTitle(anime.attributes.title)
@@ -201,11 +203,11 @@ function generateEmbedFor(anime) {
 		},
 		{
 			name: '🎭 Genres',
-			value: anime.attributes.genres?.join(', ')
+			value: genres
 		},
 		{
 			name: '🎡 Themes',
-			value: anime.attributes.themes?.join(', ')
+			value: themes
 		}
 	)
 
@@ -321,6 +323,30 @@ function getRating(anime) {
 	}
 	
 	return rating
+}
+
+/** Get the genres of the given anime. */
+function getGenres(anime) {
+	var genres = 'N/A'
+	const genresArray = anime.attributes.genres ?? []
+
+	if (genresArray.length) {
+		genres = genresArray.join(', ')
+	}
+
+	return genres
+}
+
+/** Get the themes of the given anime. */
+function getThemes(anime) {
+	var themes = 'N/A'
+	const themesArray = anime.attributes.themes ?? []
+
+	if (themesArray.length) {
+		themes = themesArray.join(', ')
+	}
+
+	return themes
 }
 
 /** Abbreviates the given number to a more readable value. */
