@@ -6,6 +6,7 @@ const { Routes } = require('discord-api-types/v9')
 
 // MARK: - Properties
 const prefix = 'k!'
+const webhookName = 'Kurozora_webhook'
 const token = process.env['token']
 const appID = process.env['app_id']
 
@@ -16,7 +17,8 @@ const commandFiles = fs.readdirSync('./commands')
 const client = new Client({
 	intents: [
 		Intents.FLAGS.GUILDS,
-		Intents.FLAGS.GUILD_MESSAGES
+		Intents.FLAGS.GUILD_MESSAGES,
+		Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS
 	]
 })
 const rest = new REST({ version: '9' })
@@ -50,13 +52,17 @@ client.once('ready', c => {
 	client.user.setActivity('https://kurozora.app', { type: Constants.ActivityTypes.PLAYING })
 })
 
+client.on('guildCreate', guild => {
+    console.log(`Someone added my bot, server is named: ${guild.name} and their name is: ${guild.owner.user.username}`)
+});
+
 /** Runs one when the bot is reconnecting. */
-client.once("reconnecting", c => {
+client.once('reconnecting', c => {
 	console.log(`🔃 [${c.user.tag}] Reconnecting...`)
 })
 
 /** Runs one when the bot offline. */
-client.once("disconnect", c => {
+client.once('disconnect', c => {
 	console.log(`[${c.user.tag}] Disconnect!`)
 })
 
@@ -67,7 +73,38 @@ client.on('messageCreate', async message => {
 	if (!message.content.startsWith(prefix)) return
 
 	// Perform the requested command
-	if (message.content.startsWith(`${prefix}find`)) {
+	if (message.content === `${prefix}setup`) {
+		const args = message.content.slice(`${prefix.length}setup`).trim().split(/ +/g);
+
+		let webhooks = await message.guild.fetchWebhooks()
+			.then(webhook => webhook)
+			.catch(console.error)
+
+		if (webhooks.find(function(webhook) {
+			console.log(webhook)
+			return webhook.name === webhookName
+		})) {
+			return message.reply(`Webhook with the name "${webhookName}" already exists.`)
+		}
+
+		// Check for permissions because we don't need everyone making webhooks!
+		if(!message.member.permissions.has('MANAGE_WEBHOOKS')) {
+			return message.channel.send('You are not authorized to do this!')
+		}
+
+		// What if the bot can't do it?
+		if(!message.guild.me.permissions.has('MANAGE_WEBHOOKS')) {
+			return message.channel.send(`I don't have the proper permission (Manage Webhooks) to make webhooks!`)
+		}
+
+		message.channel.createWebhook(webhookName)
+			.then(webhook => console.log(`Created webhook ${webhook}`))
+			.catch(console.error)
+
+		message.channel.send(`Kurozora is all set up. Enjoy!`)
+	} else if (message.content.startsWith(`${prefix}test`)) {
+		sendMessageUsingWebhook(message)
+	} else if (message.content.startsWith(`${prefix}find`)) {
 		const args = message.content.slice(`${prefix}find`.length).trim();
 
 		if (!args.length) {
@@ -78,7 +115,7 @@ client.on('messageCreate', async message => {
 		message.channel.send(reply);
 		return
 	} else {
-		message.channel.send("You need to enter a valid command!")
+		message.channel.send('You need to enter a valid command!')
 	}
 })
 
@@ -254,9 +291,9 @@ function generateEmbedFor(anime) {
 		messageEmbed.setImage(banner.url)
 	}
 
-	if (anime.attributes.copyright) {
+	if (copyright) {
 		messageEmbed.setFooter({
-			text: anime.attributes.copyright,
+			text: copyright,
 		})
 	}
 
@@ -287,12 +324,12 @@ function getAirDates(anime) {
 	const lastAired = anime.attributes.lastAired
 
 	if (firstAired) {
-		const date = new Date(firstAired * 1000).toLocaleDateString('en-US', {year: "numeric", month: "short", day: "numeric"})
+		const date = new Date(firstAired * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'})
 		aired += `🚀 ${date}`
 	}
 
 	if (lastAired) {
-		const date = new Date(lastAired * 1000).toLocaleDateString('en-US', {year: "numeric", month: "short", day: "numeric"})
+		const date = new Date(lastAired * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'})
 		aired += `\n╰╍╍╍╍╍╍╍╍╮\n${date} 🏁`
 	}
 
@@ -349,12 +386,37 @@ function getThemes(anime) {
 	return themes
 }
 
+async function sendMessageUsingWebhook(message) {
+	let webhooks = await message.guild.fetchWebhooks()
+			.then(webhook => webhook)
+			.catch(console.error)
+
+	let kWebhook = webhooks.find(function(webhook) {
+		return webhook.name === webhookName
+	})
+
+	if (kWebhook) {
+		const emoji = client.emojis.cache.find(emoji => emoji.name === 'lsd_');
+
+		kWebhook.send({
+			content: `${message.content} ${emoji}`,
+			username: message.author.username,
+			avatarURL: message.author.avatarURL(),
+		})
+	}
+	// message.channel.createWebhook(message.author.username, {avatar: message.author.avatarURL()}).then(webhook => {
+	// 	webhook.send(msg).then(() => {
+	// 		webhook.delete();
+	// 	});
+	// });
+}
+
 /** Abbreviates the given number to a more readable value. */
 function abbreviateNumber(value) {
     return Intl.NumberFormat('en-US', {
 	    maximumFractionDigits: 1,
-	    notation: "compact", 
-	    compactDisplay: "short"
+	    notation: 'compact', 
+	    compactDisplay: 'short'
 	}).format(value)
 }
 
