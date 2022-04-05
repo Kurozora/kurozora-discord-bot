@@ -46,22 +46,26 @@ for (const file of commandFiles) {
 })()
 
 // MARK: - Listeners
+/** Runs on every request and logs debug information to the terminal. */
+client.on('debug', console.log);
+
 /** Runs one when the bot is online. */
 client.once('ready', c => {
 	console.log(`🚀 [${c.user.tag}] Running...`)
 	client.user.setActivity('https://kurozora.app', { type: Constants.ActivityTypes.PLAYING })
 })
 
+/** Runs when the bot is added to a server. */
 client.on('guildCreate', guild => {
-    console.log(`Someone added my bot, server is named: ${guild.name} and their name is: ${guild.owner.user.username}`)
+    console.log(`Someone added my bot, server is named: ${guild.name}`)
 });
 
-/** Runs one when the bot is reconnecting. */
+/** Runs once when the bot is reconnecting. */
 client.once('reconnecting', c => {
 	console.log(`🔃 [${c.user.tag}] Reconnecting...`)
 })
 
-/** Runs one when the bot offline. */
+/** Runs once when the bot offline. */
 client.once('disconnect', c => {
 	console.log(`[${c.user.tag}] Disconnect!`)
 })
@@ -105,8 +109,11 @@ client.on('messageCreate', async message => {
 	} else if (message.content.startsWith(`${prefix}test`)) {
 		sendMessageUsingWebhook(message)
 	} else if (message.content.startsWith(`${prefix}find`)) {
+		if (message.mentions.everyone) return
+		if (message.mentions.users.size || message.mentions.roles.size) return
+		
 		const args = message.content.slice(`${prefix}find`.length).trim();
-
+		
 		if (!args.length) {
 			return message.channel.send(`Please provide a title.`, { ephemeral: true });
 		}
@@ -171,7 +178,8 @@ async function find(query) {
 			return `No results were found for ${query} :(`
 		})
 		.catch(function(error) {
-			console.log(error);
+			console.error(error);
+			return `No results were found for ${query} :(`
 		})
 
 	return data
@@ -179,6 +187,7 @@ async function find(query) {
 
 /** Generates a message embed for the given anime. */
 function generateEmbedFor(anime) {
+	const synopsis = anime.attributes.synopsis
 	const poster = anime.attributes.poster
 	const banner = anime.attributes.banner
 	const kurozoraUrl = `https://kurozora.app/anime/${anime.attributes.slug}`
@@ -198,8 +207,11 @@ function generateEmbedFor(anime) {
 		// 	iconURL: 'https://i.imgur.com/AfFp7pu.png',
 		// 	url: 'https://discord.js.org'
 		// })
-		.setDescription(anime.attributes.synopsis)
 
+	if (synopsis) {
+		messageEmbed.setDescription(synopsis)
+	}
+	
 	if (poster) {
 		messageEmbed.setThumbnail(poster.url)
 		.setColor(poster.backgroundColor)
