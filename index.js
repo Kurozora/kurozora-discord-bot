@@ -1,8 +1,10 @@
 const axios = require('axios')
 const fs = require('fs')
-const { Client, Intents, MessageEmbed, Constants } = require('discord.js')
+const { Client, Intents, MessageEmbed, Constants, Activity } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
+const { joinVoiceChannel } = require('@discordjs/voice')
+const { ActivityManager } = require('./helpers/activities')
 
 // MARK: - Properties
 const prefix = 'k!'
@@ -18,11 +20,13 @@ const client = new Client({
 	intents: [
 		Intents.FLAGS.GUILDS,
 		Intents.FLAGS.GUILD_MESSAGES,
-		Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS
+		Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
+		Intents.FLAGS.GUILD_VOICE_STATES,
 	]
 })
 const rest = new REST({ version: '9' })
-	.setToken(token);
+	.setToken(token)
+const activityManager = new ActivityManager(client, rest)
 
 // Add commands
 for (const file of commandFiles) {
@@ -47,7 +51,7 @@ for (const file of commandFiles) {
 
 // MARK: - Listeners
 /** Runs on every request and logs debug information to the terminal. */
-client.on('debug', console.log);
+client.on('debug', console.log)
 
 /** Runs one when the bot is online. */
 client.once('ready', c => {
@@ -57,8 +61,8 @@ client.once('ready', c => {
 
 /** Runs when the bot is added to a server. */
 client.on('guildCreate', guild => {
-    console.log(`Someone added my bot, server is named: ${guild.name}`)
-});
+	console.log(`Someone added my bot, server is named: ${guild.name}`)
+})
 
 /** Runs once when the bot is reconnecting. */
 client.once('reconnecting', c => {
@@ -78,7 +82,7 @@ client.on('messageCreate', async message => {
 
 	// Perform the requested command
 	if (message.content === `${prefix}setup`) {
-		const args = message.content.slice(`${prefix.length}setup`).trim().split(/ +/g);
+		const args = message.content.slice(`${prefix.length}setup`).trim().split(/ +/g)
 
 		let webhooks = await message.guild.fetchWebhooks()
 			.then(webhook => webhook)
@@ -92,12 +96,12 @@ client.on('messageCreate', async message => {
 		}
 
 		// Check for permissions because we don't need everyone making webhooks!
-		if(!message.member.permissions.has('MANAGE_WEBHOOKS')) {
+		if (!message.member.permissions.has('MANAGE_WEBHOOKS')) {
 			return message.channel.send('You are not authorized to do this!')
 		}
 
 		// What if the bot can't do it?
-		if(!message.guild.me.permissions.has('MANAGE_WEBHOOKS')) {
+		if (!message.guild.me.permissions.has('MANAGE_WEBHOOKS')) {
 			return message.channel.send(`I don't have the proper permission (Manage Webhooks) to make webhooks!`)
 		}
 
@@ -111,15 +115,15 @@ client.on('messageCreate', async message => {
 	} else if (message.content.startsWith(`${prefix}find`)) {
 		if (message.mentions.everyone) return
 		if (message.mentions.users.size || message.mentions.roles.size) return
-		
-		const args = message.content.slice(`${prefix}find`.length).trim();
-		
+
+		const args = message.content.slice(`${prefix}find`.length).trim()
+
 		if (!args.length) {
-			return message.channel.send(`Please provide a title.`, { ephemeral: true });
+			return message.channel.send(`Please provide a title.`, { ephemeral: true })
 		}
 
 		const reply = await find(args)
-		message.channel.send(reply);
+		message.channel.send(reply)
 		return
 	} else {
 		message.channel.send('You need to enter a valid command!')
@@ -155,6 +159,24 @@ client.on('interactionCreate', async interaction => {
 		const reply = await find(interaction.options.getString('title'))
 		interaction.editReply(reply)
 		return
+	} else if (commandName === 'play') {
+		await interaction.deferReply()
+		let activity = interaction.options.getString('activity')
+		let voiceChannel = interaction.member.voice.channel
+		if (!voiceChannel) return interaction.editReply('Connect to a voice channel first.')
+
+		// joinVoiceChannel({
+		// 	channelId: voiceChannel.id,
+		// 	guildId: interaction.guild.id,
+  //           adapterCreator: interaction.guild.voiceAdapterCreator
+		// })
+
+		let code = await activityManager.activityInvite(voiceChannel, activity)
+		if (code) {
+			interaction.editReply('https://discord.gg/' + code)
+		} else {
+			interaction.editReply('An invite link can’t be generated at this moment.')
+		}
 	}
 })
 
@@ -178,7 +200,7 @@ async function find(query) {
 			return `No results were found for ${query} :(`
 		})
 		.catch(function(error) {
-			console.error(error);
+			console.error(error)
 			return `No results were found for ${query} :(`
 		})
 
@@ -202,19 +224,19 @@ function generateEmbedFor(anime) {
 	const messageEmbed = new MessageEmbed()
 		.setTitle(anime.attributes.title)
 		.setURL(kurozoraUrl)
-		// .setAuthor({
-		// 	name: anime.,
-		// 	iconURL: 'https://i.imgur.com/AfFp7pu.png',
-		// 	url: 'https://discord.js.org'
-		// })
+	// .setAuthor({
+	// 	name: anime.,
+	// 	iconURL: 'https://i.imgur.com/AfFp7pu.png',
+	// 	url: 'https://discord.js.org'
+	// })
 
 	if (synopsis) {
 		messageEmbed.setDescription(synopsis)
 	}
-	
+
 	if (poster) {
 		messageEmbed.setThumbnail(poster.url)
-		.setColor(poster.backgroundColor)
+			.setColor(poster.backgroundColor)
 	} else {
 		messageEmbed.setColor('#ff9300')
 	}
@@ -325,7 +347,7 @@ function getBroadcast(anime) {
 	if (airTime) {
 		broadcast += `at ${airTime}UTC`
 	}
-	
+
 	return broadcast
 }
 
@@ -336,12 +358,12 @@ function getAirDates(anime) {
 	const lastAired = anime.attributes.lastAired
 
 	if (firstAired) {
-		const date = new Date(firstAired * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'})
+		const date = new Date(firstAired * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' 	})
 		aired += `🚀 ${date}`
 	}
 
 	if (lastAired) {
-		const date = new Date(lastAired * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'})
+		const date = new Date(lastAired * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 		aired += `\n╰╍╍╍╍╍╍╍╍╮\n${date} 🏁`
 	}
 
@@ -350,7 +372,7 @@ function getAirDates(anime) {
 
 /** Get the air season emoji of the given anime. */
 function getAirSeasonEmoji(anime) {
-	switch(anime.attributes.airSeason) {
+	switch (anime.attributes.airSeason) {
 		case 'Spring':
 			return '🍃'
 		case 'Summer':
@@ -370,7 +392,7 @@ function getRating(anime) {
 	if (stats) {
 		rating = `**${stats.ratingAverage}**/5.0 with **${abbreviateNumber(stats.ratingCount)}** Ratings`
 	}
-	
+
 	return rating
 }
 
@@ -400,15 +422,15 @@ function getThemes(anime) {
 
 async function sendMessageUsingWebhook(message) {
 	let webhooks = await message.guild.fetchWebhooks()
-			.then(webhook => webhook)
-			.catch(console.error)
+		.then(webhook => webhook)
+		.catch(console.error)
 
 	let kWebhook = webhooks.find(function(webhook) {
 		return webhook.name === webhookName
 	})
 
 	if (kWebhook) {
-		const emoji = client.emojis.cache.find(emoji => emoji.name === 'lsd_');
+		const emoji = client.emojis.cache.find(emoji => emoji.name === 'lsd_')
 
 		kWebhook.send({
 			content: `${message.content} ${emoji}`,
@@ -416,19 +438,19 @@ async function sendMessageUsingWebhook(message) {
 			avatarURL: message.author.avatarURL(),
 		})
 	}
-	// message.channel.createWebhook(message.author.username, {avatar: message.author.avatarURL()}).then(webhook => {
-	// 	webhook.send(msg).then(() => {
-	// 		webhook.delete();
-	// 	});
-	// });
+// message.channel.createWebhook(message.author.username, {avatar: message.author.avatarURL()}).then(webhook => {
+// 	webhook.send(msg).then(() => {
+// 		webhook.delete()
+// 	})
+// })
 }
 
 /** Abbreviates the given number to a more readable value. */
 function abbreviateNumber(value) {
-    return Intl.NumberFormat('en-US', {
-	    maximumFractionDigits: 1,
-	    notation: 'compact', 
-	    compactDisplay: 'short'
+	return Intl.NumberFormat('en-US', {
+		maximumFractionDigits: 1,
+		notation: 'compact',
+		compactDisplay: 'short'
 	}).format(value)
 }
 

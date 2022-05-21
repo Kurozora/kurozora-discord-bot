@@ -1,0 +1,70 @@
+{
+	"youtube": {
+		"id": "880218394199220334",
+		"name": "YouTube Together"
+	},
+	"youtubedev": {
+		"id": "880218832743055411",
+		"name": "YouTube Together (Dev)"
+	},
+	"pokernight": {
+		"id": "755827207812677713",
+		"name": "Poker Night"
+	},
+	"betrayal": {
+		"id": "773336526917861400",
+		"name": "Betrayal"
+	},
+	"fishington": {
+		"id": "814288819477020702",
+		"name": "Fishington"
+	},
+	"chessinthepark": {
+		"id": "832012774040141894",
+		"name": "Chess in the Park"
+	},
+	"chessintheparkdev": {
+		"id": "832012586023256104",
+		"name": "Chess in the Park (Dev)"
+	},
+	"lettertile": {
+		"id": "879863686565621790",
+		"name": "Letter Tile"
+	},
+	"wordsnack": {
+		"id": "879863976006127627",
+		"name": "Word Snack"
+	},
+	"doodlecrew": {
+		"id": "878067389634314250",
+		"name": "Doodle Crew"
+	},
+	"awkwords": {
+		"id": "879863881349087252",
+		"name": "Awkwords"
+	},
+	"spellcast": {
+		"id": "852509694341283871",
+		"name": "Spellcast"
+	},
+	"checkersinthepark": {
+		"id": "832013003968348200",
+		"name": "Checkers in the Park"
+	},
+	"puttparty": {
+		"id": "763133495793942528",
+		"name": "Putt Party"
+	},
+	"sketchheads": {
+		"id": "902271654783242291",
+		"name": "Sketch Heads"
+	},
+	"ocho": {
+		"id": "832025144389533716",
+		"name": "Ocho"
+	},
+	"sketchyartist": {
+		"id": "879864070101172255",
+		"name": "Sketchy Artist"
+	}
+}
