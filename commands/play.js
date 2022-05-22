@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders')
-const activities = require('../constants/activities.json');
+const activities = require('../resources/activities.json');
 
 const data = new SlashCommandBuilder()
 	.setName('play')

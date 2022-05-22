@@ -3,8 +3,8 @@ const fs = require('fs')
 const { Client, Intents, MessageEmbed, Constants, Activity } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
-const { joinVoiceChannel } = require('@discordjs/voice')
 const { ActivityManager } = require('./helpers/activities')
+const { StreamManager } = require('./helpers/stream')
 
 // MARK: - Properties
 const prefix = 'k!'
@@ -27,6 +27,7 @@ const client = new Client({
 const rest = new REST({ version: '9' })
 	.setToken(token)
 const activityManager = new ActivityManager(client, rest)
+const streamManager = new StreamManager(client, rest)
 
 // Add commands
 for (const file of commandFiles) {
@@ -165,18 +166,26 @@ client.on('interactionCreate', async interaction => {
 		let voiceChannel = interaction.member.voice.channel
 		if (!voiceChannel) return interaction.editReply('Connect to a voice channel first.')
 
-		// joinVoiceChannel({
-		// 	channelId: voiceChannel.id,
-		// 	guildId: interaction.guild.id,
-  //           adapterCreator: interaction.guild.voiceAdapterCreator
-		// })
-
 		let code = await activityManager.activityInvite(voiceChannel, activity)
 		if (code) {
 			interaction.editReply('https://discord.gg/' + code)
 		} else {
 			interaction.editReply('An invite link can’t be generated at this moment.')
 		}
+		return
+	} else if (commandName == 'stream') {
+		await interaction.deferReply()
+		let user = interaction.member
+		let voiceChannel = interaction.member.voice.channel
+		if(!voiceChannel) return interaction.editReply('Connect to a voice channel first.')
+
+		let code = await streamManager.streamInvite(voiceChannel, user)
+		if (code) {
+			interaction.editReply('https://discord.gg/' + code)
+		} else {
+			interaction.editReply('An invite link can‘t be generated at this moment.')
+		}
+		return
 	}
 })
 

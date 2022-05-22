@@ -1,8 +1,7 @@
 const { Invite } = require('discord.js');
 const { Routes } = require('discord-api-types/v9')
-const activities = require('../resources/activities.json');
 
-class ActivityManager {
+class StreamManager {
 	// MARK: - Properties
 	client
 	rest
@@ -24,22 +23,22 @@ class ActivityManager {
 	 * @param {string} Application
 	 * @returns {Invite}
 	 */
-	async activityInvite(voiceChannel, activity) {
+	async streamInvite(voiceChannel, user) {
 		try {
-			console.log('Generating activity invite code.')
+			console.log('Generating stream invite code.')
 
 			let response = await this.rest.post(
 				Routes.channelInvites(voiceChannel.id),
 				{
 					body: {
-						target_application_id: activities[activity].id,
-						target_type: 2,
+						target_user_id: user.id,
+						target_type: 1,
 						temporary: false
 					}
 				},
 			)
 
-			console.log(`Generated activity invite code ${response.code}`)
+			console.log(`Generated stream invite code ${response.code}`)
 			return response.code
 		} catch (error) {
 			console.error(error)
@@ -48,5 +47,5 @@ class ActivityManager {
 }
 
 module.exports = {
-	ActivityManager: ActivityManager
+	StreamManager: StreamManager
 }
