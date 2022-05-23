@@ -3,6 +3,13 @@ const { REST } = require('@discordjs/rest')
 const { AudioPlayer, createAudioPlayer, joinVoiceChannel, VoiceConnection, createAudioResource } = require('@discordjs/voice');
 const ytdl = require("ytdl-core");
 const youtubeURLS = require('../resources/urls.json').youtube
+// To get the YouTube cookie
+// - navigate to YouTube in a web browser
+// - open up dev tools (opt+cmd+j on mac)
+// - go to the network tab
+// - click on a request on the left
+// - scroll down to "Request Headers"
+// - find the "cookie" header and copy its entire contents
 const youtubeCookie = process.env['youtube_cookie']
 
 class MusicManager {
