@@ -1,14 +1,23 @@
-const { Invite } = require('discord.js');
+const { Client, Invite, User, VoiceChannel } = require('discord.js')
+const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 
 class StreamManager {
 	// MARK: - Properties
+	/**
+	 * @param {Client} client - client
+	 */
 	client
+
+	/**
+	 * @param {REST} rest - rest
+	 */
 	rest
 
 	// MARK: - Initializers
 	/**
 	 * @constructor
+	 *
 	 * @param {Client} client - Client
 	 * @param {REST} rest - Rest
 	 */
@@ -20,8 +29,11 @@ class StreamManager {
 	// MARK: - Functions
 	/**
 	 * Creates Activity Invite in the voice channel
-	 * @param {string} Application
-	 * @returns {Invite}
+	 *
+	 * @param {VoiceChannel} voiceChannel - voice channel
+	 * @param {User} user - user
+	 *
+	 * @returns {string}
 	 */
 	async streamInvite(voiceChannel, user) {
 		try {

@@ -1,10 +1,11 @@
 const axios = require('axios')
 const fs = require('fs')
-const { Client, Intents, MessageEmbed, Constants, Activity } = require('discord.js')
+const { Client, Intents, MessageEmbed, Constants } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
 const { StreamManager } = require('./helpers/stream')
+const { MusicManager } = require('./helpers/music')
 
 // MARK: - Properties
 const prefix = 'k!'
@@ -28,6 +29,7 @@ const rest = new REST({ version: '9' })
 	.setToken(token)
 const activityManager = new ActivityManager(client, rest)
 const streamManager = new StreamManager(client, rest)
+const musicManager = new MusicManager(client, rest)
 
 // Add commands
 for (const file of commandFiles) {
@@ -177,7 +179,7 @@ client.on('interactionCreate', async interaction => {
 		await interaction.deferReply()
 		let user = interaction.member
 		let voiceChannel = interaction.member.voice.channel
-		if(!voiceChannel) return interaction.editReply('Connect to a voice channel first.')
+		if (!voiceChannel) return interaction.editReply('Connect to a voice channel first.')
 
 		let code = await streamManager.streamInvite(voiceChannel, user)
 		if (code) {
@@ -186,11 +188,41 @@ client.on('interactionCreate', async interaction => {
 			interaction.editReply('An invite link can‘t be generated at this moment.')
 		}
 		return
+	} else if (commandName == 'music') {
+		await interaction.deferReply()
+
+		let voiceChannel = interaction.member.voice.channel
+		if (!voiceChannel) return interaction.editReply('Connect to a voice channel first.')
+
+		if (interaction.options.getSubcommand() === 'queue') {
+			await musicManager.queue(voiceChannel, interaction.guild, interaction.options.getString('target'))
+			interaction.deleteReply()
+			return
+		}
+		
+		if (interaction.options.getSubcommand() === 'play') {
+			musicManager.play()
+			interaction.deleteReply()
+			return
+		}
+
+		if (interaction.options.getSubcommand() === 'pause') {
+			musicManager.pause()
+			interaction.deleteReply()
+			return
+		}
+
+		interaction.deleteReply()
+		return
 	}
 })
 
 // MARK: - Functions
-/** Find the requested anime on Kurozora.app */
+/** 
+ * Find the requested anime on Kurozora.app 
+ *
+ * @param {string} query - query
+ */
 async function find(query) {
 	const data = await axios.get('https://api.kurozora.app/v1/anime/search', {
 		params: {
