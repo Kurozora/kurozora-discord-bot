@@ -6,6 +6,8 @@ const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
 const { StreamManager } = require('./helpers/stream')
 const { MusicManager } = require('./helpers/music')
+const { Player, Queue } = require("discord-player");
+const { registerPlayerEvents } = require('./events/player');
 
 // MARK: - Properties
 const prefix = 'k!'
@@ -20,11 +22,12 @@ const commandFiles = fs.readdirSync('./commands')
 const client = new Client({
 	intents: [
 		Intents.FLAGS.GUILDS,
-		Intents.FLAGS.GUILD_MESSAGES,
+        Intents.FLAGS.GUILD_MESSAGES,
 		Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
 		Intents.FLAGS.GUILD_VOICE_STATES,
 	]
 })
+client.player = new Player(client)
 const rest = new REST({ version: '9' })
 	.setToken(token)
 const activityManager = new ActivityManager(client, rest)
@@ -53,6 +56,8 @@ for (const file of commandFiles) {
 })()
 
 // MARK: - Listeners
+registerPlayerEvents(client.player)
+
 /** Runs on every request and logs debug information to the terminal. */
 client.on('debug', console.log)
 
@@ -176,11 +181,16 @@ client.on('interactionCreate', async interaction => {
 		}
 		return
 	} else if (commandName == 'stream') {
-		await interaction.deferReply()
 		let user = interaction.member
 		let voiceChannel = interaction.member.voice.channel
-		if (!voiceChannel) return interaction.editReply('Connect to a voice channel first.')
+		if (!voiceChannel) {
+			return interaction.reply({
+				content: 'Connect to a voice channel first.', 
+				ephemeral: true
+			})
+		}
 
+		await interaction.deferReply()
 		let code = await streamManager.streamInvite(voiceChannel, user)
 		if (code) {
 			interaction.editReply('https://discord.gg/' + code)
@@ -189,27 +199,41 @@ client.on('interactionCreate', async interaction => {
 		}
 		return
 	} else if (commandName == 'music') {
-		await interaction.deferReply()
-
 		let voiceChannel = interaction.member.voice.channel
-		if (!voiceChannel) return interaction.editReply('Connect to a voice channel first.')
+		if (!voiceChannel) {
+			return interaction.reply({
+				content: 'Connect to a voice channel first.', 
+				ephemeral: true
+			}).catch(e => console.error(e))
+		}
 
 		if (interaction.options.getSubcommand() === 'queue') {
-			await musicManager.queue(voiceChannel, interaction.guild, interaction.options.getString('target'))
-			interaction.deleteReply()
-			return
+			const target = interaction.options.getString('target')
+			return await musicManager.queue(voiceChannel, interaction, target)
 		}
-		
+
 		if (interaction.options.getSubcommand() === 'play') {
-			musicManager.play()
-			interaction.deleteReply()
-			return
+			return musicManager.play(interaction)
 		}
 
 		if (interaction.options.getSubcommand() === 'pause') {
-			musicManager.pause()
-			interaction.deleteReply()
-			return
+			return musicManager.pause(interaction)
+		}
+
+		if (interaction.options.getSubcommand() === 'forwards') {
+			return musicManager.forwards(interaction)
+		}
+
+		if (interaction.options.getSubcommand() === 'backwards') {
+			return musicManager.backwards(interaction)
+		}
+
+		if (interaction.options.getSubcommand() === 'clear') {
+			return musicManager.clear(interaction)
+		}
+
+		if (interaction.options.getSubcommand() === 'list') {
+			return musicManager.list(interaction)
 		}
 
 		interaction.deleteReply()
@@ -279,7 +303,7 @@ function generateEmbedFor(anime) {
 		messageEmbed.setThumbnail(poster.url)
 			.setColor(poster.backgroundColor)
 	} else {
-		messageEmbed.setColor('#ff9300')
+		messageEmbed.setColor('#FF9300')
 	}
 
 	messageEmbed.addFields(

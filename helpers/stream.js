@@ -39,6 +39,7 @@ class StreamManager {
 		try {
 			console.log('Generating stream invite code.')
 
+			/** @param {Invite} response - response */
 			let response = await this.rest.post(
 				Routes.channelInvites(voiceChannel.id),
 				{
