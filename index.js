@@ -6,8 +6,8 @@ const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
 const { StreamManager } = require('./helpers/stream')
 const { MusicManager } = require('./helpers/music')
-const { Player, Queue } = require("discord-player");
-const { registerPlayerEvents } = require('./events/player');
+const { Player } = require('discord-player');
+const { registerEvents } = require('./events/events')
 
 // MARK: - Properties
 const prefix = 'k!'
@@ -22,7 +22,7 @@ const commandFiles = fs.readdirSync('./commands')
 const client = new Client({
 	intents: [
 		Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MESSAGES,
+		Intents.FLAGS.GUILD_MESSAGES,
 		Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
 		Intents.FLAGS.GUILD_VOICE_STATES,
 	]
@@ -32,7 +32,7 @@ const rest = new REST({ version: '9' })
 	.setToken(token)
 const activityManager = new ActivityManager(client, rest)
 const streamManager = new StreamManager(client, rest)
-const musicManager = new MusicManager(client, rest)
+const musicManager = new MusicManager(client, rest, client.player)
 
 // Add commands
 for (const file of commandFiles) {
@@ -55,32 +55,8 @@ for (const file of commandFiles) {
 	}
 })()
 
-// MARK: - Listeners
-registerPlayerEvents(client.player)
-
-/** Runs on every request and logs debug information to the terminal. */
-client.on('debug', console.log)
-
-/** Runs one when the bot is online. */
-client.once('ready', c => {
-	console.log(`🚀 [${c.user.tag}] Running...`)
-	client.user.setActivity('https://kurozora.app', { type: Constants.ActivityTypes.PLAYING })
-})
-
-/** Runs when the bot is added to a server. */
-client.on('guildCreate', guild => {
-	console.log(`Someone added my bot, server is named: ${guild.name}`)
-})
-
-/** Runs once when the bot is reconnecting. */
-client.once('reconnecting', c => {
-	console.log(`🔃 [${c.user.tag}] Reconnecting...`)
-})
-
-/** Runs once when the bot offline. */
-client.once('disconnect', c => {
-	console.log(`[${c.user.tag}] Disconnect!`)
-})
+// MARK: - Event Listeners
+registerEvents(client)
 
 /** Runs when a message is created by a user. */
 client.on('messageCreate', async message => {
@@ -120,19 +96,6 @@ client.on('messageCreate', async message => {
 		message.channel.send(`Kurozora is all set up. Enjoy!`)
 	} else if (message.content.startsWith(`${prefix}test`)) {
 		sendMessageUsingWebhook(message)
-	} else if (message.content.startsWith(`${prefix}find`)) {
-		if (message.mentions.everyone) return
-		if (message.mentions.users.size || message.mentions.roles.size) return
-
-		const args = message.content.slice(`${prefix}find`.length).trim()
-
-		if (!args.length) {
-			return message.channel.send(`Please provide a title.`, { ephemeral: true })
-		}
-
-		const reply = await find(args)
-		message.channel.send(reply)
-		return
 	} else {
 		message.channel.send('You need to enter a valid command!')
 	}
@@ -185,7 +148,7 @@ client.on('interactionCreate', async interaction => {
 		let voiceChannel = interaction.member.voice.channel
 		if (!voiceChannel) {
 			return interaction.reply({
-				content: 'Connect to a voice channel first.', 
+				content: 'Connect to a voice channel first.',
 				ephemeral: true
 			})
 		}
@@ -202,42 +165,39 @@ client.on('interactionCreate', async interaction => {
 		let voiceChannel = interaction.member.voice.channel
 		if (!voiceChannel) {
 			return interaction.reply({
-				content: 'Connect to a voice channel first.', 
+				content: 'Connect to a voice channel first.',
 				ephemeral: true
 			}).catch(e => console.error(e))
 		}
 
-		if (interaction.options.getSubcommand() === 'queue') {
-			const target = interaction.options.getString('target')
-			return await musicManager.queue(voiceChannel, interaction, target)
+		switch (interaction.options.getSubcommand()) {
+			case 'queue':
+				const target = interaction.options.getString('target')
+				return await musicManager.queue(voiceChannel, interaction, target)
+			case 'play':
+				return musicManager.play(interaction)
+			case 'pause':
+				return musicManager.pause(interaction)
+			case 'forwards':
+				return musicManager.forwards(interaction)
+			case 'backwards':
+				return musicManager.backwards(interaction)
+			case 'shuffle':
+				return musicManager.shuffle(interaction)
+			case 'loop':
+				return musicManager.loop(interaction)
+			case 'volume':
+				return musicManager.volume(interaction)
+			case 'clear':
+				return musicManager.clear(interaction)
+			case 'list':
+				return musicManager.list(interaction)
+			default:
+				return interaction.reply({
+					content: 'This command is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized.',
+					ephemeral: true
+				})
 		}
-
-		if (interaction.options.getSubcommand() === 'play') {
-			return musicManager.play(interaction)
-		}
-
-		if (interaction.options.getSubcommand() === 'pause') {
-			return musicManager.pause(interaction)
-		}
-
-		if (interaction.options.getSubcommand() === 'forwards') {
-			return musicManager.forwards(interaction)
-		}
-
-		if (interaction.options.getSubcommand() === 'backwards') {
-			return musicManager.backwards(interaction)
-		}
-
-		if (interaction.options.getSubcommand() === 'clear') {
-			return musicManager.clear(interaction)
-		}
-
-		if (interaction.options.getSubcommand() === 'list') {
-			return musicManager.list(interaction)
-		}
-
-		interaction.deleteReply()
-		return
 	}
 })
 
@@ -423,7 +383,7 @@ function getAirDates(anime) {
 	const lastAired = anime.attributes.lastAired
 
 	if (firstAired) {
-		const date = new Date(firstAired * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' 	})
+		const date = new Date(firstAired * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 		aired += `🚀 ${date}`
 	}
 
@@ -503,11 +463,11 @@ async function sendMessageUsingWebhook(message) {
 			avatarURL: message.author.avatarURL(),
 		})
 	}
-// message.channel.createWebhook(message.author.username, {avatar: message.author.avatarURL()}).then(webhook => {
-// 	webhook.send(msg).then(() => {
-// 		webhook.delete()
-// 	})
-// })
+	// message.channel.createWebhook(message.author.username, {avatar: message.author.avatarURL()}).then(webhook => {
+	// 	webhook.send(msg).then(() => {
+	// 		webhook.delete()
+	// 	})
+	// })
 }
 
 /** Abbreviates the given number to a more readable value. */

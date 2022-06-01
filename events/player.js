@@ -1,3 +1,6 @@
+const { Player } = require('discord-player')
+
+/** @param {Player} player - player */
 module.exports.registerPlayerEvents = (player) => {
 	player.on('error', (queue, error) => {
 		console.log(`[${queue.guild.name}] Error emitted from the queue: ${error.message}`)
@@ -9,13 +12,13 @@ module.exports.registerPlayerEvents = (player) => {
 
 	player.on('trackStart', (queue, track) => {
 		queue.metadata.channel.send({
-			content: `🎶 | Started playing: **${track.title}** in **${queue.connection.channel.name}**!`
+			content: `🎵 | Playing: **${track.title}** in **${queue.connection.channel.name}**!`
 		}).catch(e => console.error(e))
 	});
 
 	player.on('trackAdd', (queue, track) => {
 		queue.metadata.channel.send({
-			content: `🎶 | Track **${track.title}** queued!`
+			content: `📋 | Track **${track.title}** queued!`
 		}).catch(e => console.error(e))
 	});
 
@@ -27,7 +30,7 @@ module.exports.registerPlayerEvents = (player) => {
 
 	player.on('channelEmpty', (queue) => {
 		queue.metadata.channel.send({
-			content: '❌ | Nobody is in the voice channel, leaving...'
+			content: '⏏️ | Nobody is in the voice channel, leaving...'
 		}).catch(e => console.error(e))
 	});
 
