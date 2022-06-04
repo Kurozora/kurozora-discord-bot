@@ -1,11 +1,12 @@
 const axios = require('axios')
 const fs = require('fs')
-const { Client, Intents, MessageEmbed, Constants } = require('discord.js')
+const { Client, Intents, MessageEmbed } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
 const { StreamManager } = require('./helpers/stream')
 const { MusicManager } = require('./helpers/music')
+const { UtilsManager } = require('./helpers/utils')
 const { Player } = require('discord-player');
 const { registerEvents } = require('./events/events')
 
@@ -33,6 +34,7 @@ const rest = new REST({ version: '9' })
 const activityManager = new ActivityManager(client, rest)
 const streamManager = new StreamManager(client, rest)
 const musicManager = new MusicManager(client, rest, client.player)
+const utilsManager = new UtilsManager(client, rest)
 
 // Add commands
 for (const file of commandFiles) {
@@ -109,10 +111,8 @@ client.on('interactionCreate', async interaction => {
 
 	if (commandName === 'cat') {
 		await interaction.deferReply()
-		const { file } = await axios.get('https://aws.random.cat/meow')
-			.then(response => response.data)
-		interaction.editReply({ files: [file] })
-		return
+		const { file } = await getCat()
+		return interaction.editReply({ files: [file] })
 	} else if (commandName === 'dog') {
 		await interaction.deferReply()
 		const { url } = await axios.get('https://random.dog/woof.json')
@@ -155,12 +155,12 @@ client.on('interactionCreate', async interaction => {
 
 		await interaction.deferReply()
 		let code = await streamManager.streamInvite(voiceChannel, user)
+
 		if (code) {
-			interaction.editReply('https://discord.gg/' + code)
-		} else {
-			interaction.editReply('An invite link can‘t be generated at this moment.')
+			return interaction.editReply('https://discord.gg/' + code)
 		}
-		return
+
+		return interaction.editReply('An invite link can‘t be generated at this moment.')
 	} else if (commandName == 'music') {
 		let voiceChannel = interaction.member.voice.channel
 		let command = interaction.options.getSubcommand()
@@ -213,10 +213,27 @@ client.on('interactionCreate', async interaction => {
 					ephemeral: true
 				})
 		}
+	} else if (commandName == 'flip') {
+		return utilsManager.flipCoin(interaction)
 	}
 })
 
 // MARK: - Functions
+/**
+ * Get a random cat picture and return the response.
+ */
+async function getCat() {
+	const response = await axios.get('https://aws.random.cat/meow')
+			.then(response => response.data)
+			.catch(error => console.error(error))
+
+	if (!response) {
+		return getCat()
+	}
+
+	return response
+}
+
 /**
  * Confirms the user has joined a voice channel.
  *
