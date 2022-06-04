@@ -148,7 +148,7 @@ client.on('interactionCreate', async interaction => {
 		let voiceChannel = interaction.member.voice.channel
 		if (!voiceChannel) {
 			return interaction.reply({
-				content: 'Connect to a voice channel first.',
+				content: '❌ | Connect to a voice channel first.',
 				ephemeral: true
 			})
 		}
@@ -163,35 +163,50 @@ client.on('interactionCreate', async interaction => {
 		return
 	} else if (commandName == 'music') {
 		let voiceChannel = interaction.member.voice.channel
-		if (!voiceChannel) {
-			return interaction.reply({
-				content: 'Connect to a voice channel first.',
-				ephemeral: true
-			}).catch(e => console.error(e))
+		let command = interaction.options.getSubcommand()
+
+		if (command != 'search') {
+			if (! confirmConnectedToVC(voiceChannel, interaction)) {
+				return
+			}
 		}
 
-		switch (interaction.options.getSubcommand()) {
-			case 'queue':
-				const target = interaction.options.getString('target')
+		switch (command) {
+			case 'queue': {
+				let target = interaction.options.getString('target')
 				return await musicManager.queue(voiceChannel, interaction, target)
-			case 'play':
+			}
+			case 'search': {
+				let target = interaction.options.getString('target')
+				return await musicManager.search(interaction, target)
+			}
+			case 'play': {
 				return musicManager.play(interaction)
-			case 'pause':
+			}
+			case 'pause': {
 				return musicManager.pause(interaction)
-			case 'forwards':
+			}
+			case 'forwards': {
 				return musicManager.forwards(interaction)
-			case 'backwards':
+			}
+			case 'backwards': {
 				return musicManager.backwards(interaction)
-			case 'shuffle':
+			}
+			case 'shuffle': {
 				return musicManager.shuffle(interaction)
-			case 'loop':
+			}
+			case 'loop': {
 				return musicManager.loop(interaction)
-			case 'volume':
+			}
+			case 'volume': {
 				return musicManager.volume(interaction)
-			case 'clear':
+			}
+			case 'clear': {
 				return musicManager.clear(interaction)
-			case 'list':
+			}
+			case 'list': {
 				return musicManager.list(interaction)
+			}
 			default:
 				return interaction.reply({
 					content: 'This command is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized.',
@@ -202,6 +217,23 @@ client.on('interactionCreate', async interaction => {
 })
 
 // MARK: - Functions
+/**
+ * Confirms the user has joined a voice channel.
+ *
+ * @param {VoiceChannle} voiceChannel - voice channel
+ * @param {Interaction} interaction - interaction
+ */
+function confirmConnectedToVC(voiceChannel, interaction) {
+	if (!voiceChannel) {
+		interaction.reply({
+			content: '❌ | Connect to a voice channel first.',
+			ephemeral: true
+		}).catch(e => console.error(e))
+		return false
+	}
+	return true
+} 
+
 /** 
  * Find the requested anime on Kurozora.app 
  *

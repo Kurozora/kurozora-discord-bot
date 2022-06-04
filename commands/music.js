@@ -15,6 +15,16 @@ const data = new SlashCommandBuilder()
 	)
 	.addSubcommand(subcommand =>
 		subcommand
+			.setName('search')
+			.setDescription('Search for a track without adding to playback queue.')
+			.addStringOption(option =>
+				option.setName('target')
+					.setDescription('The URL, ID or name of the video.')
+					.setRequired(true)
+			)
+	)
+	.addSubcommand(subcommand =>
+		subcommand
 			.setName('play')
 			.setDescription('Play the audio.')
 	)

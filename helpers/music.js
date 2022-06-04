@@ -32,6 +32,23 @@ class MusicManager {
 	 */
 	noop = () => { }
 
+	/**
+	 * @param {} indexEmojis = index emojis
+	 */
+	indexEmojis = [
+		'0️⃣',
+		'1️⃣',
+		'2️⃣',
+		'3️⃣',
+		'4️⃣',
+		'5️⃣',
+		'6️⃣',
+		'7️⃣',
+		'8️⃣',
+		'9️⃣',
+		'🔟',
+	]
+
 	// MARK: - Initializers
 	/**
 	 * @constructor
@@ -156,13 +173,97 @@ class MusicManager {
 	}
 
 	/**
+	 * Search for a video with the given search query.
+	 *
+	 * @param {Interaction} interaction - interaction
+	 * @param {string} searchQuery - search query
+	 *
+	 * @returns {Track} track - track
+	 */
+	async search(interaction, searchQuery) {
+		const tracks = await this.player.search(searchQuery, {
+			requestedBy: interaction.user
+		})
+			.then(x => x.tracks)
+			.catch(e => console.error(e))
+
+		if (!tracks || !tracks.length) {
+			return interaction.reply({
+				content: `❌ | Track **${searchQuery}** not found!`,
+				ephemeral: true
+			}).catch(e => console.error(e))
+		}
+
+		const maxTracks = tracks.slice(0, 10)
+		const embed = new MessageEmbed()
+
+		embed.setColor('#FF9300')
+		embed.setAuthor({
+			name: `${interaction.user.username}`,
+			iconURL: interaction.user.displayAvatarURL({
+				size: 1024,
+				dynamic: true
+			})
+		})
+		embed.setDescription(`${maxTracks.map((track, i) => `**${this.indexEmojis[i + 1]}** \`${track.duration}\` ${track.title} | **${track.author}**`).join('\n')}\n\nReply with **1** to **${maxTracks.length}** or **cancel** ⬇️`)
+		embed.setTimestamp()
+
+		await interaction.reply({
+			content: `Search results for \`${searchQuery}\``,
+			embeds: [embed]
+		})
+
+		const collector = interaction.channel.createMessageCollector({
+			time: 15000,
+			errors: ['time'],
+			filter: message => message.author.id === interaction.user.id
+		})
+
+		collector.on('collect', async (query) => {
+			query.delete()
+
+			if (query.content.toLowerCase() === 'cancel') {
+				collector.stop()
+				return interaction.deleteReply()
+			}
+
+			const value = parseInt(query.content)
+
+			if (!value || value <= 0 || value > maxTracks.length) {
+				return collector.channel.send({
+					content: `❌ | Invalid response, try a value between **1** and **${maxTracks.length}** or **cancel**`,
+					ephemeral: true
+				})
+			}
+
+			collector.stop()
+			interaction.deleteReply()
+
+			return collector.channel.send({
+				content: `🔗 | **${tracks[value - 1].url}**`,
+			}).catch(e => console.error(e))
+		})
+
+		collector.on('end', (message, reason) => {
+			if (reason === 'time') {
+				return collector.channel.send({
+					content: `❌ | Search timed out...`,
+					ephemeral: true
+			  	})
+			}
+		})
+
+		return
+	}
+
+	/**
 	 * Creates Activity Invite in the voice channel
 	 *
 	 * @param {VoiceChannel} voiceChannel - voice channel
 	 * @param {Interaction} interaction - interaction
-	 * @param {string} videoLink - video link
+	 * @param {string} searchQuery - video link
 	 */
-	async queue(voiceChannel, interaction, videoLink) {
+	async queue(voiceChannel, interaction, searchQuery) {
 		const queue = this.player.createQueue(interaction.guild, {
 			metadata: {
 				channel: interaction.channel
@@ -182,7 +283,7 @@ class MusicManager {
 			}).catch(e => console.error(e))
 		}
 
-		const track = await this.player.search(videoLink, {
+		const track = await this.player.search(searchQuery, {
 			requestedBy: interaction.user
 		})
 			.then(x => x.tracks[0])
@@ -190,7 +291,7 @@ class MusicManager {
 
 		if (!track) {
 			return interaction.reply({
-				content: `❌ | Track **${videoLink}** not found!`,
+				content: `❌ | Track **${searchQuery}** not found!`,
 				ephemeral: true
 			}).catch(e => console.error(e))
 		}
@@ -491,8 +592,8 @@ class MusicManager {
 			const embed = new MessageEmbed()
 			embed.setColor('#FF9300')
 			embed.setDescription(`The volume you want to change is the same as the current one. \n*↳ Please try again with a different number.*`)
-			return interaction.reply({ 
-				embeds: [embed] 
+			return interaction.reply({
+				embeds: [embed]
 			})
 		}
 
