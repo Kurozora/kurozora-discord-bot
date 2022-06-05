@@ -1,0 +1,1 @@
+{"version":3,"file":"stationRelationship.d.ts","sourceRoot":"","sources":["../../src/serverTypes/stationRelationship.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAC9C,OAAO,EAAE,OAAO,EAAE,MAAM,WAAW,CAAC;AAGpC,MAAM,WAAW,mBAAoB,SAAQ,YAAY;IACvD,IAAI,EAAE,OAAO,EAAE,CAAC;CACjB"}

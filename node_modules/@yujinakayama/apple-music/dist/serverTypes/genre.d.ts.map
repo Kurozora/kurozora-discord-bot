@@ -1,0 +1,1 @@
+{"version":3,"file":"genre.d.ts","sourceRoot":"","sources":["../../src/serverTypes/genre.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,YAAY,CAAC;AAGtC,MAAM,WAAW,KAAM,SAAQ,QAAQ;IACrC,UAAU,CAAC,EAAE,KAAK,CAAC,UAAU,CAAC;IAC9B,IAAI,EAAE,QAAQ,CAAC;CAChB;AAED,kBAAU,KAAK,CAAC;IAEd,UAAiB,UAAU;QACzB,IAAI,EAAE,MAAM,CAAC;KACd;CACF"}

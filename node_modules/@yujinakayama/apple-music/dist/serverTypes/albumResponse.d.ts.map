@@ -1,0 +1,1 @@
+{"version":3,"file":"albumResponse.d.ts","sourceRoot":"","sources":["../../src/serverTypes/albumResponse.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAC9C,OAAO,EAAE,KAAK,EAAE,MAAM,SAAS,CAAC;AAGhC,MAAM,WAAW,aAAc,SAAQ,YAAY;IACjD,IAAI,EAAE,KAAK,EAAE,CAAC;CACf"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"artistRelationship.d.ts","sourceRoot":"","sources":["../../src/serverTypes/artistRelationship.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAC9C,OAAO,EAAE,MAAM,EAAE,MAAM,UAAU,CAAC;AAGlC,MAAM,WAAW,kBAAmB,SAAQ,YAAY;IACtD,IAAI,EAAE,MAAM,EAAE,CAAC;CAChB"}

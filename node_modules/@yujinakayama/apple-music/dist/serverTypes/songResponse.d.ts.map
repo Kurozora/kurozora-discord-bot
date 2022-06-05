@@ -1,0 +1,1 @@
+{"version":3,"file":"songResponse.d.ts","sourceRoot":"","sources":["../../src/serverTypes/songResponse.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAC9C,OAAO,EAAE,IAAI,EAAE,MAAM,QAAQ,CAAC;AAG9B,MAAM,WAAW,YAAa,SAAQ,YAAY;IAChD,IAAI,EAAE,IAAI,EAAE,CAAC;CACd"}

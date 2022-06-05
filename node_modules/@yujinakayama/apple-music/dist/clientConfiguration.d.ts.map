@@ -1,0 +1,1 @@
+{"version":3,"file":"clientConfiguration.d.ts","sourceRoot":"","sources":["../src/clientConfiguration.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,mBAAmB;IAClC,cAAc,EAAE,MAAM,CAAC;IACvB,iBAAiB,CAAC,EAAE,MAAM,CAAC;IAC3B,kBAAkB,CAAC,EAAE,MAAM,CAAC;CAC7B"}

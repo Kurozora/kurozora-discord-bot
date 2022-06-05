@@ -1,0 +1,1 @@
+{"version":3,"file":"musicVideoRelationship.d.ts","sourceRoot":"","sources":["../../src/serverTypes/musicVideoRelationship.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAC9C,OAAO,EAAE,UAAU,EAAE,MAAM,cAAc,CAAC;AAG1C,MAAM,WAAW,sBAAuB,SAAQ,YAAY;IAC1D,IAAI,EAAE,UAAU,EAAE,CAAC;CACpB"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"playlistResponse.d.ts","sourceRoot":"","sources":["../../src/serverTypes/playlistResponse.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAC9C,OAAO,EAAE,QAAQ,EAAE,MAAM,YAAY,CAAC;AAGtC,MAAM,WAAW,gBAAiB,SAAQ,YAAY;IACpD,IAAI,EAAE,QAAQ,EAAE,CAAC;CAClB"}

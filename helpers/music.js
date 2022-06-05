@@ -1,9 +1,21 @@
+const axios = require('axios')
+const qs = require('qs')
+// const { Client: MusicKitClient } = require('@yujinakayama/apple-music')
 const { Client, Interaction, MessageEmbed, VoiceChannel } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { VoiceConnection } = require('@discordjs/voice')
 const { Player, QueueRepeatMode } = require('discord-player')
 const prism = require('prism-media')
 const { pipeline } = require('stream')
+const MusicKit = require('node-musickit-api/promises')
+const musicKitDeveloperToken = process.env['musickit_developer_token']
+const musicKit = new MusicKit({
+	key: '-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQga5fSB5tTgjcoDvUiA2+7exKyLwkJyi3rsVhBSJ+Sq/qgCgYIKoZIzj0DAQehRANCAATvB5c8Vlgbl4GhuvC3Eva4fpgoDXkhXXi7/M/P6JN7rOnBxFlzk4cLssO85rRdF9Rph8lYO6ioZiMgZJJkqj76\n-----END PRIVATE KEY-----',
+	teamId: '47ZEU5J4BF',
+	keyId: '38LFJ8S6BK',
+})
+const spotifyClientID = process.env['spotify_client_id']
+const spotifyClientSecret = process.env['spotify_client_secret']
 
 class MusicManager {
 	// MARK: - Properties
@@ -64,6 +76,24 @@ class MusicManager {
 	}
 
 	// MARK: - Functions
+	/** 
+	 * Requests and returns a Spotify access token
+	 */
+	async getSpotifyAccessToken() {
+		const authToken = Buffer.from(`${spotifyClientID}:${spotifyClientSecret}`, 'utf-8').toString('base64')
+		const data = qs.stringify({ 'grant_type': 'client_credentials' })
+		const response = await axios.post('https://accounts.spotify.com/api/token', data, {
+			headers: {
+				'Authorization': `Basic ${authToken}`,
+				'Content-Type': 'application/x-www-form-urlencoded'
+			}
+		})
+			.then(response => response.data)
+			.catch(error => console.error(error))
+
+		return response.access_token
+	}
+
 	/**
 	 * Returns whether the format matches the predefined filter.
 	 *
@@ -173,6 +203,47 @@ class MusicManager {
 	}
 
 	/**
+	 * Search for a song on Apple Music.
+	 *
+	 * @param {string} searchQuery - search query
+	 */
+	async searchMusicKit(searchQuery) {
+		let response = await musicKit.search('us', 'songs', searchQuery, 1)
+			.then(response => response.results)
+			.catch(error => console.error(error))
+
+		return response.songs.data[0]
+	}
+
+	/**
+	 * Search for a song on Spotify.
+	 *
+	 * @param {string} searchQuery - search query
+	 */
+	async searchSpotify(searchQuery) {
+		const spotifyAccessToken = await this.getSpotifyAccessToken()
+
+		if (!spotifyAccessToken) {
+			return
+		}
+
+		const searchAPIURL = `https://api.spotify.com/v1/search`
+		const response = await axios.get(searchAPIURL, {
+			headers: {
+				'Authorization': `Bearer ${spotifyAccessToken}`
+			},
+			params: {
+				'q': searchQuery,
+				'type': 'track'
+			}
+		})
+			.then(response => response.data)
+			.catch(error => console.error(error))
+
+		return response.tracks
+	}
+
+	/**
 	 * Search for a video with the given search query.
 	 *
 	 * @param {Interaction} interaction - interaction
@@ -239,8 +310,36 @@ class MusicManager {
 			collector.stop()
 			interaction.deleteReply()
 
+			const selectedTrack = tracks[value - 1]
+			const musicKitTrack = await this.searchMusicKit(searchQuery)
+			const spotifyTracks = await this.searchSpotify(searchQuery)
+			var content = `📺 | ${selectedTrack.url}`
+			var musicKitURL
+			var spotifyTrack
+			var spotifyURL
+
+			if (musicKitTrack) {
+				musicKitURL = musicKitTrack.attributes.url
+
+				if (musicKitURL) {
+					content += `\n🍎 | ${musicKitURL.replace('\\', '')}`
+				}
+			}
+
+			if (spotifyTracks.items.length) {
+				spotifyTrack = spotifyTracks.items[0]
+			}
+
+			if (spotifyTrack) {
+				spotifyURL = spotifyTrack.external_urls.spotify
+
+				if (spotifyURL) {
+					content += `\n🟢 | ${spotifyURL.replace('\\', '')}`
+				}
+			}
+
 			return collector.channel.send({
-				content: `🔗 | **${tracks[value - 1].url}**`,
+				content: content,
 			}).catch(e => console.error(e))
 		})
 
@@ -249,7 +348,7 @@ class MusicManager {
 				return collector.channel.send({
 					content: `❌ | Search timed out...`,
 					ephemeral: true
-			  	})
+				})
 			}
 		})
 
