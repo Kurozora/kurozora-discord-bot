@@ -1,21 +1,19 @@
 const axios = require('axios')
 const qs = require('qs')
-// const { Client: MusicKitClient } = require('@yujinakayama/apple-music')
 const { Client, Interaction, MessageEmbed, VoiceChannel } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { VoiceConnection } = require('@discordjs/voice')
 const { Player, QueueRepeatMode } = require('discord-player')
-const prism = require('prism-media')
+const prism = require('@arno500/prism-media')
 const { pipeline } = require('stream')
 const MusicKit = require('node-musickit-api/promises')
-const musicKitDeveloperToken = process.env['musickit_developer_token']
 const musicKit = new MusicKit({
-	key: '-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQga5fSB5tTgjcoDvUiA2+7exKyLwkJyi3rsVhBSJ+Sq/qgCgYIKoZIzj0DAQehRANCAATvB5c8Vlgbl4GhuvC3Eva4fpgoDXkhXXi7/M/P6JN7rOnBxFlzk4cLssO85rRdF9Rph8lYO6ioZiMgZJJkqj76\n-----END PRIVATE KEY-----',
-	teamId: '47ZEU5J4BF',
-	keyId: '38LFJ8S6BK',
+	key: process.env['AM_DEVELOPER_TOKEN'],
+	teamId: process.env['AM_TEAM_ID'],
+	keyId: process.env['AM_KEY_ID'],
 })
-const spotifyClientID = process.env['spotify_client_id']
-const spotifyClientSecret = process.env['spotify_client_secret']
+const spotifyClientID = process.env['SPOTIFY_CLIENT_ID']
+const spotifyClientSecret = process.env['SPOTIFY_CLIENT_SECRET']
 
 class MusicManager {
 	// MARK: - Properties
@@ -76,7 +74,7 @@ class MusicManager {
 	}
 
 	// MARK: - Functions
-	/** 
+	/**
 	 * Requests and returns a Spotify access token
 	 */
 	async getSpotifyAccessToken() {
@@ -212,7 +210,11 @@ class MusicManager {
 			.then(response => response.results)
 			.catch(error => console.error(error))
 
-		return response.songs.data[0]
+		if (response.songs != undefined) {
+			return response.songs.data[0]
+		}
+
+		return null
 	}
 
 	/**
@@ -285,7 +287,7 @@ class MusicManager {
 		})
 
 		const collector = interaction.channel.createMessageCollector({
-			time: 15000,
+			time: 30000,
 			errors: ['time'],
 			filter: message => message.author.id === interaction.user.id
 		})
@@ -313,11 +315,15 @@ class MusicManager {
 			const selectedTrack = tracks[value - 1]
 			const musicKitTrack = await this.searchMusicKit(searchQuery)
 			const spotifyTracks = await this.searchSpotify(searchQuery)
-			var content = `📺 | ${selectedTrack.url}`
+			var content = `🔎 | \`${searchQuery}\` by <@${interaction.user.id}>`
 			var musicKitURL
 			var spotifyTrack
 			var spotifyURL
 
+			// Add YouTube link
+			content += `\n📺 | ${selectedTrack.url}`
+
+			// Add Apple Music Link
 			if (musicKitTrack) {
 				musicKitURL = musicKitTrack.attributes.url
 
@@ -326,6 +332,7 @@ class MusicManager {
 				}
 			}
 
+			// Add Spotify link
 			if (spotifyTracks.items.length) {
 				spotifyTrack = spotifyTracks.items[0]
 			}
@@ -338,6 +345,7 @@ class MusicManager {
 				}
 			}
 
+			// Send results
 			return collector.channel.send({
 				content: content,
 			}).catch(e => console.error(e))
@@ -347,7 +355,11 @@ class MusicManager {
 			if (reason === 'time') {
 				return collector.channel.send({
 					content: `❌ | Search timed out...`,
-					ephemeral: true
+					ephemeral: true,
+					allowedMentions: {
+						parse: [],
+						repliedUser: false
+					}
 				})
 			}
 		})

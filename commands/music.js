@@ -55,15 +55,30 @@ const data = new SlashCommandBuilder()
 			.addStringOption(option =>
 				option.setName('mode')
 					.setDescription('Set the mode of the loop.')
-					.addChoice('Autoplay', 'autoplay')
-					.addChoice('Track', 'track')
-					.addChoice('Queue', 'queue')
-					.addChoice('Off', 'off')
+					.addChoices({
+						name: 'Autoplay',
+						value: 'autoplay'
+					},
+					{
+						name: 'Track',
+						value: 'track'
+					},
+					{
+						name: 'Queue',
+						value: 'queue'
+					},
+					{
+						name: 'Off',
+						value: 'off'
+					})
 			)
 			.addStringOption(option =>
 				option.setName('info')
 					.setDescription('Various information about the current loop status.')
-					.addChoice('Status', 'status')
+					.addChoices({
+						name: 'Status',
+						value: 'status'
+					})
 			)
 	)
 	.addSubcommand(subcommand =>

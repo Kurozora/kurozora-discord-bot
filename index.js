@@ -1,3 +1,4 @@
+require('dotenv').config();
 const axios = require('axios')
 const fs = require('fs')
 const { Client, Intents, MessageEmbed } = require('discord.js')
@@ -13,8 +14,8 @@ const { registerEvents } = require('./events/events')
 // MARK: - Properties
 const prefix = 'k!'
 const webhookName = 'Kurozora_webhook'
-const token = process.env['token']
-const appID = process.env['app_id']
+const token = process.env['TOKEN']
+const appID = process.env['APP_ID']
 
 const commands = []
 const commandFiles = fs.readdirSync('./commands')
@@ -249,10 +250,10 @@ function confirmConnectedToVC(voiceChannel, interaction) {
 		return false
 	}
 	return true
-} 
+}
 
-/** 
- * Find the requested anime on Kurozora.app 
+/**
+ * Find the requested anime on Kurozora.app
  *
  * @param {string} query - query
  */

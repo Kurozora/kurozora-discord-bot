@@ -11,7 +11,10 @@ const data = new SlashCommandBuilder()
 
 		Object.keys(activities).forEach(function(key) {
 			const activity = activities[key]
-			option.addChoice(activity.name, key);
+			option.addChoices({
+				name: activity.name,
+				value: key
+			});
 		})
 
 		return option
