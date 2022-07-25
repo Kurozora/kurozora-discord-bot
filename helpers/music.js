@@ -267,7 +267,7 @@ class MusicManager {
 			}).catch(e => console.error(e))
 		}
 
-		const maxTracks = tracks.slice(0, 10)
+		const maxTracks = tracks.slice(0, 5)
 		const embed = new MessageEmbed()
 
 		embed.setColor('#FF9300')
