@@ -134,7 +134,6 @@ client.on('interactionCreate', async interaction => {
 			return interaction.editReply({files: [image]})
 		}
 		case 'search': {
-			await interaction.deferReply()
 			let type = interaction.options.getString('type')
 			let query = interaction.options.getString('query')
 			return await kurozoraManager.search(interaction, type, query)
