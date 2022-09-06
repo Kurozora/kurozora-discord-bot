@@ -1,14 +1,18 @@
 require('dotenv').config();
 const axios = require('axios')
 const fs = require('fs')
+const moment = require('moment')
 const { Client, Intents, MessageEmbed } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
 const { KurozoraManager } = require('./helpers/kurozora')
 const { MusicManager } = require('./helpers/music')
+const { PollManager } = require('./helpers/poll')
 const { StreamManager } = require('./helpers/stream')
 const { UtilsManager } = require('./helpers/utils')
+const { open } = require('sqlite')
+const sqlite3 = require('sqlite3').verbose()
 const { Player } = require('discord-player');
 const { registerEvents } = require('./events/events')
 
@@ -38,7 +42,15 @@ const rest = new REST({ version: '9' })
 // Initialize managers
 const activityManager = new ActivityManager(client, rest)
 const kurozoraManager = new KurozoraManager(client, rest)
-const musicManager = new MusicManager(client, rest, client.player)
+const musicManager = new MusicManager(client, rest, client.player);
+var pollManager
+(async () => {
+	const db = await open({
+		filename: './database/main.db',
+		driver: sqlite3.Database
+	})
+	pollManager = new PollManager(client, db)
+})()
 const streamManager = new StreamManager(client, rest)
 const utilsManager = new UtilsManager(client, rest)
 
@@ -68,7 +80,7 @@ registerEvents(client)
 
 /** Runs when a message is created by a user. */
 client.on('messageCreate', async message => {
-	// Don't do anything if it's from a bot or doesn't start with the prefix
+	// Don’t do anything if it's from a bot or doesn’t start with the prefix
 	if (message.author.bot) return
 	if (!message.content.startsWith(prefix)) return
 
@@ -87,14 +99,14 @@ client.on('messageCreate', async message => {
 			return message.reply(`Webhook with the name "${webhookName}" already exists.`)
 		}
 
-		// Check for permissions because we don't need everyone making webhooks!
+		// Check for permissions because we don’t need everyone making webhooks!
 		if (!message.member.permissions.has('MANAGE_WEBHOOKS')) {
 			return message.channel.send('You are not authorized to do this!')
 		}
 
-		// What if the bot can't do it?
+		// What if the bot can’t do it?
 		if (!message.guild.me.permissions.has('MANAGE_WEBHOOKS')) {
-			return message.channel.send(`I don't have the proper permission (Manage Webhooks) to make webhooks!`)
+			return message.channel.send(`I don’t have the proper permission (Manage Webhooks) to make webhooks!`)
 		}
 
 		message.channel.createWebhook(webhookName)
@@ -111,8 +123,23 @@ client.on('messageCreate', async message => {
 
 /** Runs when an interaction is created by a user. */
 client.on('interactionCreate', async interaction => {
-	if (!interaction.isCommand()) return
+	if (interaction.isCommand()) {
+		return await handleCommand(interaction)
+	} else if (interaction.isSelectMenu()) {
+		return await handleSelectMenu(interaction)
+	} else if (interaction.isButton()) {
+		return await handleButton(interaction)
+	}
+})
 
+// MARK: - Functions
+/**
+ * Handles the selected command.
+ *
+ * @param interaction - interaction
+ * @returns {Promise<*>}
+ */
+async function handleCommand(interaction) {
 	const { commandName } = interaction
 
 	switch (commandName) {
@@ -152,6 +179,10 @@ client.on('interactionCreate', async interaction => {
 			}
 
 			return interaction.editReply('An invite link can’t be generated at this moment.')
+		}
+		case 'poll': {
+			return await pollManager.create(interaction)
+				.catch(error => console.error(error))
 		}
 		case 'stream': {
 			let user = interaction.member
@@ -235,9 +266,48 @@ client.on('interactionCreate', async interaction => {
 				ephemeral: true
 			})
 	}
-})
+}
 
-// MARK: - Functions
+/**
+ * Handles the selected menu.
+ *
+ * @param interaction - interaction
+ * @returns {Promise<void>}
+ */
+async function handleSelectMenu(interaction) {
+	switch (interaction.customId) {
+		case 'poll': {
+			return await pollManager.update(interaction)
+				.catch(error => console.error(error))
+		}
+		default:
+			return interaction.reply({
+				content: 'This select menu is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized. Please notify.',
+				ephemeral: true
+			})
+	}
+}
+
+/**
+ * Handles the selected button.
+ *
+ * @param interaction - interaction
+ * @returns {Promise<void>}
+ */
+async function handleButton(interaction) {
+	switch (interaction.customId) {
+		case 'close_poll': {
+			return await pollManager.close(interaction)
+				.catch(error => console.error(error))
+		}
+		default:
+			return interaction.reply({
+				content: 'This button is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized. Please notify.',
+				ephemeral: true
+			})
+	}
+}
+
 /**
  * Get a random cat picture and return the response.
  */
