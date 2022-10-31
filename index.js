@@ -82,7 +82,36 @@ registerEvents(client)
 client.on('messageCreate', async message => {
 	// Don’t do anything if it's from a bot or doesn’t start with the prefix
 	if (message.author.bot) return
-	if (!message.content.startsWith(prefix)) return
+	if (!message.content.startsWith(prefix)) {
+		const regexp = /https?:\/\/\S+/g;
+		const links = [...message.content.matchAll(regexp)]
+
+		if (links.length) {
+			const cleanLinks = []
+
+			for (const link of links) {
+				const trimmedLink = link[0].trim()
+				const cleanUrl = await cleanUrlTracking(trimmedLink)
+				const cleanLink = cleanUrl.trim()
+
+				// Apply a threshold to avoid annoying users with trivial alterations
+				if (trimmedLink.toLowerCase() != cleanLink.toLowerCase()) {
+					cleanLinks.push(cleanLink)
+				}
+			}
+
+			if (!cleanLinks.length) {
+				return
+			}
+
+			const plural =  cleanLinks.length == 1 ? 'is' : 'ese'
+			const payload = cleanLinks.join('\n')
+			const response = `I cleaned th${plural} for you:\n${payload}`
+			return message.reply(response)
+		}
+
+		return
+	}
 
 	// Perform the requested command
 	if (message.content === `${prefix}setup`) {
@@ -306,6 +335,32 @@ async function handleButton(interaction) {
 				ephemeral: true
 			})
 	}
+}
+
+/**
+ * Clean the given url from tracking
+ *
+ * @param {string} link
+ * @returns {*|Promise<*>}
+ */
+async function cleanUrlTracking(link) {
+	let response = new Promise(function(success, nosuccess) {
+		const { spawn } = require('child_process')
+		const cleanUrlTracking = spawn('python', ['./python/CleanUrlTracking.py', link])
+
+		cleanUrlTracking.stdout.on('data', function(data) {
+			console.log('stdout', data.toString())
+			success(data)
+		})
+
+		cleanUrlTracking.stderr.on('data', (data) => {
+			console.error(data.toString())
+			nosuccess(data)
+		})
+	})
+		.then(response => response.toString())
+
+	return response
 }
 
 /**
