@@ -6,6 +6,7 @@ const { Client, Intents, MessageEmbed } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
+const { AnimeManager } = require('./helpers/anime')
 const { KurozoraManager } = require('./helpers/kurozora')
 const { MusicManager } = require('./helpers/music')
 const { PollManager } = require('./helpers/poll')
@@ -41,6 +42,7 @@ const rest = new REST({ version: '9' })
 
 // Initialize managers
 const activityManager = new ActivityManager(client, rest)
+const animeManager = new AnimeManager(client, rest)
 const kurozoraManager = new KurozoraManager(client, rest)
 const musicManager = new MusicManager(client, rest, client.player);
 var pollManager
@@ -92,10 +94,19 @@ client.on('messageCreate', async message => {
 			for (const link of links) {
 				const trimmedLink = link[0].trim()
 				const cleanUrl = await cleanUrlTracking(trimmedLink)
-				const cleanLink = cleanUrl.trim()
+				let cleanLink = cleanUrl.trim()
 
-				// Apply a threshold to avoid annoying users with trivial alterations
-				if (trimmedLink.toLowerCase() != cleanLink.toLowerCase()) {
+				// YouTube
+				if (cleanLink.includes('youtube.com/shorts')) {
+					cleanLink = convertShortsToVideo(cleanLink)
+				}
+
+				// Twitter
+				if (cleanLink.includes('twitter.com') || cleanLink.includes('t.co')) {
+					cleanLink = cleanTwitterLink(cleanLink)
+				}
+
+				if (trimmedLink.toLowerCase() !== cleanLink.toLowerCase()) {
 					cleanLinks.push(cleanLink)
 				}
 			}
@@ -104,7 +115,7 @@ client.on('messageCreate', async message => {
 				return
 			}
 
-			const plural =  cleanLinks.length == 1 ? 'is' : 'ese'
+			const plural =  cleanLinks.length === 1 ? 'is' : 'ese'
 			const payload = cleanLinks.join('\n')
 			const response = `I cleaned th${plural} for you:\n${payload}`
 			return message.reply(response)
@@ -172,6 +183,10 @@ async function handleCommand(interaction) {
 	const { commandName } = interaction
 
 	switch (commandName) {
+		case 'anime': {
+			let type = interaction.options.getString('type')
+			return await animeManager.search(interaction, type)
+		}
 		case 'cat': {
 			await interaction.deferReply()
 			const {file} = await getCat()
@@ -237,7 +252,7 @@ async function handleCommand(interaction) {
 			let voiceChannel = interaction.member.voice.channel
 			let command = interaction.options.getSubcommand()
 
-			if (command != 'search') {
+			if (command !== 'search') {
 				if (!confirmConnectedToVC(voiceChannel, interaction)) {
 					return
 				}
@@ -344,11 +359,11 @@ async function handleButton(interaction) {
  * @returns {*|Promise<*>}
  */
 async function cleanUrlTracking(link) {
-	let response = new Promise(function(success, nosuccess) {
-		const { spawn } = require('child_process')
+	return new Promise(function (success, nosuccess) {
+		const {spawn} = require('child_process')
 		const cleanUrlTracking = spawn('python', ['./python/CleanUrlTracking.py', link])
 
-		cleanUrlTracking.stdout.on('data', function(data) {
+		cleanUrlTracking.stdout.on('data', function (data) {
 			console.log('stdout', data.toString())
 			success(data)
 		})
@@ -359,8 +374,30 @@ async function cleanUrlTracking(link) {
 		})
 	})
 		.then(response => response.toString())
+}
 
-	return response
+/**
+ * Converts and returns a normal YouTube video URL.
+ *
+ * @param link
+ * @returns {string}
+ */
+function convertShortsToVideo(link) {
+	const arr = link.split(/(vi\/|v%3D|v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/)/)
+	const videoID = undefined !== arr[2] ? arr[2].split(/[^\w-]/i)[0] : arr[0]
+	return 'https://youtube.com/watch?v=' + videoID;
+}
+
+/**
+ * Further cleans Twitter URLs.
+ *
+ * @param link
+ * @returns {string}
+ */
+function cleanTwitterLink(link) {
+	let url = new URL(link);
+	url.searchParams.delete('t')
+	return url.href
 }
 
 /**

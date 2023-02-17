@@ -1,7 +1,6 @@
 const axios = require('axios')
-const { Client, Invite, MessageEmbed } = require('discord.js')
+const { Client, MessageEmbed } = require('discord.js')
 const { REST } = require('@discordjs/rest')
-const { Routes } = require('discord-api-types/v9')
 const { SearchType } = require.main.require('./enums/SearchType')
 const { CharacterStatus } = require.main.require('./enums/CharacterStatus')
 const kurozoraURL = process.env['KUROZORA_URL']
@@ -99,7 +98,7 @@ class KurozoraManager {
             interaction.deleteReply()
 
             const selectedData = data[value - 1]
-            var embed = await this.#gnerateEmbedForType(interaction.user, type, selectedData)
+            var embed = await this.#generateEmbedForType(interaction.user, type, selectedData)
 
             // Send results
             return collector.channel.send({
@@ -148,7 +147,7 @@ class KurozoraManager {
 
                 switch (type) {
                     case SearchType.Anime: {
-                        if (data?.shows.length != 0) {
+                        if (data?.shows.length !== 0) {
                             const showIdentities = data.shows.data
                             var shows = []
 
@@ -165,8 +164,26 @@ class KurozoraManager {
                             return shows
                         }
                     }
+                    case SearchType.Manga: {
+                        if (data?.literatures.length !== 0) {
+                            const literatureIdentities = data.literatures.data
+                            var literatures = []
+
+                            for (let literatureIdentity of literatureIdentities) {
+                                const literature = await this.getShowDetails(literatureIdentity.href)
+
+                                if (typeof literature === 'string') {
+                                    return literature
+                                }
+
+                                literatures.push(literature)
+                            }
+
+                            return literatures
+                        }
+                    }
                     case SearchType.Characters: {
-                        if (data?.characters.length != 0) {
+                        if (data?.characters.length !== 0) {
                             const characterIdentities = data.characters.data
                             var characters = []
 
@@ -208,7 +225,7 @@ class KurozoraManager {
             .then(function(response) {
                 const { data } = response.data
 
-                if (data.length != 0) {
+                if (data.length !== 0) {
                     return data[0]
                 }
 
@@ -234,7 +251,7 @@ class KurozoraManager {
             .then(function(response) {
                 const { data } = response.data
 
-                if (data.length != 0) {
+                if (data.length !== 0) {
                     return data[0]
                 }
 
@@ -274,6 +291,10 @@ class KurozoraManager {
                 embed.setDescription(`${data.map((show, i) => `**${this.indexEmojis[i + 1]}** \`${show.attributes.tvRating.name}\` ${show.attributes.title} | **${show.attributes.status.name}**`).join('\n')}\n\nReply with **1** to **${data.length}** or **cancel** ⬇️`)
                 break
             }
+            case SearchType.Manga: {
+                embed.setDescription(`${data.map((literature, i) => `**${this.indexEmojis[i + 1]}** \`${literature.attributes.tvRating.name}\` ${literature.attributes.title} | **${literature.attributes.status.name}**`).join('\n')}\n\nReply with **1** to **${data.length}** or **cancel** ⬇️`)
+                break
+            }
             case SearchType.Characters: {
                 embed.setDescription(`${data.map((character, i) => `**${this.indexEmojis[i + 1]}** ${character.attributes.name}`).join('\n')}\n\nReply with **1** to **${data.length}** or **cancel** ⬇️`)
                 break
@@ -297,10 +318,12 @@ class KurozoraManager {
      *
      * @returns {string|MessageEmbed}
      */
-    #gnerateEmbedForType(user, type, data) {
+    #generateEmbedForType(user, type, data) {
         switch (type) {
             case SearchType.Anime:
                 return this.#generateEmbedForShow(user, data)
+            case SearchType.Manga:
+                return this.#generateEmbedForLiterature(user, data)
             case SearchType.Characters:
                 return this.#generateEmbedForCharacter(user, data)
             default:
@@ -320,18 +343,18 @@ class KurozoraManager {
         const synopsis = anime.attributes.synopsis
         const poster = anime.attributes.poster
         const banner = anime.attributes.banner
-        const kurozoraURL = `https://kurozora.app/anime/${anime.attributes.slug}`
+        const characterURL = `${kurozoraURL}/anime/${anime.attributes.slug}`
         const copyright = anime.attributes.copyright
         const broadcast = this.#getBroadcast(anime)
-        const aired = this.#getAirDates(anime)
-        const airSeasonEmoji = this.#getAirSeasonEmoji(anime)
+        const ran = this.#getRunningDates(anime)
+        const runningSeasonEmoji = this.#getRunningSeasonEmoji(anime)
         const rating = this.#getRating(anime)
         const genres = this.#getGenres(anime)
         const themes = this.#getThemes(anime)
 
         const messageEmbed = new MessageEmbed()
-            .setTitle(anime.attributes.title)
-            .setURL(kurozoraURL)
+            .setTitle('📺 ' + anime.attributes.title)
+            .setURL(characterURL)
             .setAuthor({
                 name: user.username,
                 iconURL: user.displayAvatarURL({
@@ -358,7 +381,7 @@ class KurozoraManager {
                 inline: true
             },
             {
-                name: `${airSeasonEmoji} Season`,
+                name: `${runningSeasonEmoji} Season`,
                 value: anime.attributes.airSeason,
                 inline: true
             },
@@ -393,15 +416,22 @@ class KurozoraManager {
         )
 
         if (broadcast) {
-            messageEmbed.addField('📡 Broadcast', broadcast, true)
+            messageEmbed.addFields({
+                name: '📡 Broadcast',
+                value: broadcast,
+                inline: true
+            })
         }
 
-        if (aired) {
-            messageEmbed.addField('📆 Aired', aired, true)
+        if (ran) {
+            messageEmbed.addFields({
+                name: '📆 Aired',
+                value: ran,
+                inline: true
+            })
         }
 
-        messageEmbed.addFields(
-            {
+        messageEmbed.addFields({
                 name: '\u200B',
                 value: '\u200B',
                 inline: true
@@ -428,7 +458,161 @@ class KurozoraManager {
         )
 
         if (rating) {
-            messageEmbed.addField('⭐️ Rating', rating)
+            messageEmbed.addFields({
+                name: '⭐️ Rating',
+                value: rating
+            })
+        }
+
+        if (banner) {
+            messageEmbed.setImage(banner.url)
+        }
+
+        if (copyright) {
+            messageEmbed.setFooter({
+                text: copyright,
+            })
+        }
+
+        return messageEmbed
+    }
+
+    /**
+     *  Generates a message embed for the given manga.
+     *
+     * @param {} user - user
+     * @param {Object<string, *>} literature - literature
+     *
+     * @returns {MessageEmbed}
+     */
+    #generateEmbedForLiterature(user, literature) {
+        const synopsis = literature.attributes.synopsis
+        const poster = literature.attributes.poster
+        const banner = literature.attributes.banner
+        const kurozoraURL = `https://kurozora.app/manga/${literature.attributes.slug}`
+        const copyright = literature.attributes.copyright
+        const broadcast = this.#getBroadcast(literature)
+        const ran = this.#getRunningDates(literature)
+        const runningSeasonEmoji = this.#getRunningSeasonEmoji(literature)
+        const rating = this.#getRating(literature)
+        const genres = this.#getGenres(literature)
+        const themes = this.#getThemes(literature)
+
+        const messageEmbed = new MessageEmbed()
+            .setTitle('📙 ' + literature.attributes.title)
+            .setURL(kurozoraURL)
+            .setAuthor({
+                name: user.username,
+                iconURL: user.displayAvatarURL({
+                    size: 1024,
+                    dynamic: true
+                })
+            })
+
+        if (synopsis) {
+            messageEmbed.setDescription(synopsis)
+        }
+
+        if (poster) {
+            messageEmbed.setThumbnail(poster.url)
+                .setColor(poster.backgroundColor)
+        } else {
+            messageEmbed.setColor('#FF9300')
+        }
+
+        messageEmbed.addFields(
+            {
+                name: '⏳ Status',
+                value: literature.attributes.status.name,
+                inline: true
+            },
+            {
+                name: `${runningSeasonEmoji} Season`,
+                value: literature.attributes.publicationSeason,
+                inline: true
+            },
+            {
+                name: '📺 Type',
+                value: literature.attributes.type.name,
+                inline: true
+            },
+            {
+                name: '🎯 Source',
+                value: literature.attributes.source.name,
+                inline: true
+            },
+            {
+                name: '🔣 Age Rating',
+                value: literature.attributes.tvRating.name,
+                inline: true
+            },
+            {
+                name: '\u200B',
+                value: '\u200B',
+                inline: true
+            },
+            {
+                name: '🎭 Genres',
+                value: genres
+            },
+            {
+                name: '🎡 Themes',
+                value: themes
+            }
+        )
+
+        if (broadcast) {
+            messageEmbed.addFields({
+                name: '📡 Publication',
+                value: broadcast,
+                inline: true
+            })
+        }
+
+        if (ran) {
+            messageEmbed.addFields({
+                name: '📆 Published',
+                value: ran,
+                inline: true
+            })
+        }
+
+        messageEmbed.addFields({
+                name: '\u200B',
+                value: '\u200B',
+                inline: true
+            },
+            {
+                name: '📚 Volumes',
+                value: `${literature.attributes.volumeCount}`,
+                inline: true
+            },
+            {
+                name: '📑 Chapters',
+                value: `${literature.attributes.chapterCount}`,
+                inline: true
+            },
+            {
+                name: '📃 Pages',
+                value: `${literature.attributes.pageCount}`,
+                inline: true
+            },
+            {
+                name: '⏱ Duration',
+                value: literature.attributes.duration,
+                inline: true
+            },
+            {
+                name: '⏱ Duration Total',
+                value: literature.attributes.durationTotal,
+            }
+        )
+
+        if (rating) {
+            messageEmbed.addFields({
+                name: '⭐️ Rating',
+                value: rating
+            })
         }
 
         if (banner) {
@@ -462,7 +646,7 @@ class KurozoraManager {
         const kurozoraURL = `https://kurozora.app/characters/${character.attributes.slug}`
 
         const messageEmbed = new MessageEmbed()
-            .setTitle(character.attributes.name)
+            .setTitle('👤 ' + character.attributes.name)
             .setURL(kurozoraURL)
             .setAuthor({
                 name: user.username,
@@ -552,62 +736,62 @@ class KurozoraManager {
 
     // MARK: - Helpers
     /**
-     * Get the broadcast of the given anime.
+     * Get the broadcast of the given media.
      *
-     * @param {Object<string, *>} anime - anime
+     * @param {Object<string, *>} media - media
      *
      * @returns {string}
      */
-    #getBroadcast(anime) {
-        var broadcast = ''
-        const airDay = anime.attributes.airDay
-        const airTime = anime.attributes.airTime
+    #getBroadcast(media) {
+        let broadcast = ''
+        const runDay = media.attributes.airDay ?? media.attributes.publicationDay
+        const runTime = media.attributes.airTime ?? media.attributes.publicationTime
 
-        if (airDay) {
-            broadcast += `${airDay} `
+        if (runDay) {
+            broadcast += `${runDay} `
         }
 
-        if (airTime) {
-            broadcast += `at ${airTime}UTC`
+        if (runTime) {
+            broadcast += `at ${runTime}UTC`
         }
 
         return broadcast
     }
 
     /**
-     * Get the air dates of the given anime.
+     * Get the running dates of the given anime.
      *
-     * @param {Object<string, *>} anime - anime
+     * @param {Object<string, *>} media - media
      *
      * @returns {string}
      */
-    #getAirDates(anime) {
-        var aired = ''
-        const firstAired = anime.attributes.firstAired
-        const lastAired = anime.attributes.lastAired
+    #getRunningDates(media) {
+        let ran = ''
+        const startedAt = media.attributes.startedAt
+        const endedAt = media.attributes.endedAt
 
-        if (firstAired) {
-            const date = new Date(firstAired * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-            aired += `🚀 ${date}`
+        if (startedAt) {
+            const date = new Date(startedAt * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            ran += `🚀 ${date}`
         }
 
-        if (lastAired) {
-            const date = new Date(lastAired * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-            aired += `\n╰╍╍╍╍╍╍╍╍╮\n${date} 🏁`
+        if (endedAt) {
+            const date = new Date(endedAt * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            ran += `\n╰╍╍╍╍╍╍╍╍╮\n${date} 🏁`
         }
 
-        return aired
+        return ran
     }
 
     /**
-     * Get the air season emoji of the given anime.
+     * Get the air season emoji of the given media.
      *
-     * @param {Object<string, *>} anime - anime
+     * @param {Object<string, *>} media - media
      *
      * @returns {string}
      */
-    #getAirSeasonEmoji(anime) {
-        switch (anime.attributes.airSeason) {
+    #getRunningSeasonEmoji(media) {
+        switch (media.attributes.airSeason ?? media.attributes.publicationSeason) {
             case 'Spring':
                 return '🍃'
             case 'Summer':
@@ -620,15 +804,15 @@ class KurozoraManager {
     }
 
     /**
-     * Get the rating of the given anime.
+     * Get the rating of the given media.
      *
-     * @param {Object<string, *>} anime - anime
+     * @param {Object<string, *>} media - media
      *
      * @returns {?string}
      */
-    #getRating(anime) {
-        var rating = null
-        const stats = anime.attributes.stats
+    #getRating(media) {
+        let rating = null
+        const stats = media.attributes.stats
 
         if (stats) {
             rating = `**${stats.ratingAverage}**/5.0 with **${this.abbreviateNumber(stats.ratingCount)}** Ratings`
@@ -638,15 +822,15 @@ class KurozoraManager {
     }
 
     /**
-     * Get the genres of the given anime.
+     * Get the genres of the given media.
      *
-     * @param {Object<string, *>} anime - anime
+     * @param {Object<string, *>} media - media
      *
      * @returns {string}
      */
-    #getGenres(anime) {
-        var genres = 'N/A'
-        const genresArray = anime.attributes.genres ?? []
+    #getGenres(media) {
+        let genres = 'N/A'
+        const genresArray = media.attributes.genres ?? []
 
         if (genresArray.length) {
             genres = genresArray.join(', ')
@@ -656,15 +840,15 @@ class KurozoraManager {
     }
 
     /**
-     * Get the themes of the given anime.
+     * Get the themes of the given media.
      *
-     * @param {Object<string, *>} anime - anime
+     * @param {Object<string, *>} media - media
      *
      * @returns {string}
      */
-    #getThemes(anime) {
-        var themes = 'N/A'
-        const themesArray = anime.attributes.themes ?? []
+    #getThemes(media) {
+        let themes = 'N/A'
+        const themesArray = media.attributes.themes ?? []
 
         if (themesArray.length) {
             themes = themesArray.join(', ')
@@ -736,9 +920,9 @@ class KurozoraManager {
         let bust = character.attributes.bust
         let waist = character.attributes.waist
         let hip = character.attributes.hip
-        var messurements = [bust, waist, hip]
-        messurements = messurements.filter(element => element)
-        return messurements.join('/')
+        let measurements = [bust, waist, hip]
+        measurements = measurements.filter(element => element)
+        return measurements.join('/')
     }
 
     /**
@@ -764,7 +948,7 @@ class KurozoraManager {
      * @returns {string[]|null}
      */
     getEmojisFrom(string) {
-        var regex = /\p{RI}\p{RI}|\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?(\u{200D}\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?)+|\p{EPres}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?|\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})/gu
+        let regex = /\p{RI}\p{RI}|\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?(\u{200D}\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?)+|\p{EPres}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?|\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})/gu
         return string?.match(regex)
     }
 
@@ -776,7 +960,7 @@ class KurozoraManager {
      * @returns {string} string
      */
     removeEmojisFrom(string) {
-        var regex = /\p{RI}\p{RI}|\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?(\u{200D}\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?)+|\p{EPres}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?|\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})/gu
+        let regex = /\p{RI}\p{RI}|\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?(\u{200D}\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?)+|\p{EPres}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?|\p{Emoji}(\p{EMod}+|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})/gu
         return string?.replace(regex, '')
     }
 }
