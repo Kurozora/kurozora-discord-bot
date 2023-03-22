@@ -2,7 +2,7 @@ require('dotenv').config();
 const axios = require('axios')
 const fs = require('fs')
 const moment = require('moment')
-const { Client, Intents, MessageEmbed } = require('discord.js')
+const { Client, GatewayIntentBits, Partials, MessageEmbed } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
@@ -16,12 +16,15 @@ const { open } = require('sqlite')
 const sqlite3 = require('sqlite3').verbose()
 const { Player } = require('discord-player');
 const { registerEvents } = require('./events/events')
+const { AnimeGifType } = require('./enums/AnimeGifType')
 
 // MARK: - Properties
 const prefix = 'k!'
 const webhookName = 'Kurozora_webhook'
 const token = process.env['TOKEN']
 const appID = process.env['APP_ID']
+var channelID = '935269731349430352'
+var channel = null
 
 const commands = []
 const commandFiles = fs.readdirSync('./commands')
@@ -30,10 +33,10 @@ const commandFiles = fs.readdirSync('./commands')
 // Initialize client
 const client = new Client({
 	intents: [
-		Intents.FLAGS.GUILDS,
-		Intents.FLAGS.GUILD_MESSAGES,
-		Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
-		Intents.FLAGS.GUILD_VOICE_STATES,
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.GuildEmojisAndStickers,
+		GatewayIntentBits.GuildVoiceStates,
 	]
 })
 client.player = new Player(client)
@@ -83,7 +86,10 @@ registerEvents(client)
 /** Runs when a message is created by a user. */
 client.on('messageCreate', async message => {
 	// Don’t do anything if it's from a bot or doesn’t start with the prefix
-	if (message.author.bot) return
+	if (message.author.bot) {
+		return
+	}
+
 	if (!message.content.startsWith(prefix)) {
 		const regexp = /https?:\/\/\S+/g;
 		const links = [...message.content.matchAll(regexp)]
@@ -415,6 +421,19 @@ async function getCat() {
 	return response
 }
 
+// channel = await client.channels.fetch(channelID)
+// 	.then(channel => channel)
+// 	.catch(console.error)
+// console.log(channel)
+// getRandomAnimeGif()
+
+async function getRandomAnimeGif() {
+	let keys = Object.keys(AnimeGifType)
+	let type = AnimeGifType[keys[ keys.length * Math.random() << 0]];
+	let {url} = await animeManager.searchForType(type)
+	return channel.send({files: [url]})
+}
+
 /**
  * Confirms the user has joined a voice channel.
  *
@@ -450,11 +469,11 @@ async function sendMessageUsingWebhook(message) {
 			avatarURL: message.author.avatarURL(),
 		})
 	}
-	// message.channel.createWebhook(message.author.username, {avatar: message.author.avatarURL()}).then(webhook => {
-	// 	webhook.send(msg).then(() => {
-	// 		webhook.delete()
-	// 	})
-	// })
+// message.channel.createWebhook(message.author.username, {avatar: message.author.avatarURL()}).then(webhook => {
+// 	webhook.send(msg).then(() => {
+// 		webhook.delete()
+// 	})
+// })
 }
 
 // Login client

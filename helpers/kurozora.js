@@ -144,7 +144,6 @@ class KurozoraManager {
         })
             .then(async function(response) {
                 const { data } = response.data
-
                 switch (type) {
                     case SearchType.Anime: {
                         if (data?.shows.length !== 0) {
@@ -152,7 +151,7 @@ class KurozoraManager {
                             var shows = []
 
                             for (let showIdentity of showIdentities) {
-                                const show = await this.getShowDetails(showIdentity.href)
+                                const show = await this.getModelDetails(showIdentity.href)
 
                                 if (typeof show === 'string') {
                                     return show
@@ -160,7 +159,6 @@ class KurozoraManager {
 
                                 shows.push(show)
                             }
-
                             return shows
                         }
                     }
@@ -170,7 +168,7 @@ class KurozoraManager {
                             var literatures = []
 
                             for (let literatureIdentity of literatureIdentities) {
-                                const literature = await this.getShowDetails(literatureIdentity.href)
+                                const literature = await this.getModelDetails(literatureIdentity.href)
 
                                 if (typeof literature === 'string') {
                                     return literature
@@ -182,13 +180,31 @@ class KurozoraManager {
                             return literatures
                         }
                     }
+                    case SearchType.Games: {
+                        if (data?.games.length !== 0) {
+                            const gameIdentities = data.games.data
+                            var games = []
+
+                            for (let gameIdentity of gameIdentities) {
+                                const game = await this.getModelDetails(gameIdentity.href)
+
+                                if (typeof game === 'string') {
+                                    return game
+                                }
+
+                                games.push(game)
+                            }
+
+                            return games
+                        }
+                    }
                     case SearchType.Characters: {
                         if (data?.characters.length !== 0) {
                             const characterIdentities = data.characters.data
                             var characters = []
 
                             for (let characterIdentity of characterIdentities) {
-                                const character = await this.getCharacterDetails(characterIdentity.href)
+                                const character = await this.getModelDetails(characterIdentity.href)
 
                                 if (typeof character === 'string') {
                                     return character
@@ -220,7 +236,7 @@ class KurozoraManager {
      *
      * @returns {Object<string, *>|string}
      */
-    async getShowDetails(url) {
+    async getModelDetails(url) {
         const data = await axios.get(kurozoraURL + url)
             .then(function(response) {
                 const { data } = response.data
@@ -229,37 +245,11 @@ class KurozoraManager {
                     return data[0]
                 }
 
-                return `There was an error while fetching anime details :(`
+                return `There was an error while fetching the details :(`
             })
             .catch(function(error) {
                 console.error(error)
-                return `There was an error while fetching anime details :(`
-            })
-
-        return data
-    }
-
-    /**
-     * Get the details of a character.
-     *
-     * @param {string} url - url
-     *
-     * @returns {Object<string, *>|string}
-     */
-    async getCharacterDetails(url) {
-        const data = await axios.get(kurozoraURL + url)
-            .then(function(response) {
-                const { data } = response.data
-
-                if (data.length !== 0) {
-                    return data[0]
-                }
-
-                return `There was an error while fetching character details :(`
-            })
-            .catch(function(error) {
-                console.error(error)
-                return `There was an error while fetching character details :(`
+                return `There was an error while fetching the details :(`
             })
 
         return data
@@ -295,6 +285,10 @@ class KurozoraManager {
                 embed.setDescription(`${data.map((literature, i) => `**${this.indexEmojis[i + 1]}** \`${literature.attributes.tvRating.name}\` ${literature.attributes.title} | **${literature.attributes.status.name}**`).join('\n')}\n\nReply with **1** to **${data.length}** or **cancel** ⬇️`)
                 break
             }
+            case SearchType.Games: {
+                embed.setDescription(`${data.map((game, i) => `**${this.indexEmojis[i + 1]}** \`${game.attributes.tvRating.name}\` ${game.attributes.title} | **${game.attributes.status.name}**`).join('\n')}\n\nReply with **1** to **${data.length}** or **cancel** ⬇️`)
+                break
+            }
             case SearchType.Characters: {
                 embed.setDescription(`${data.map((character, i) => `**${this.indexEmojis[i + 1]}** ${character.attributes.name}`).join('\n')}\n\nReply with **1** to **${data.length}** or **cancel** ⬇️`)
                 break
@@ -324,6 +318,8 @@ class KurozoraManager {
                 return this.#generateEmbedForShow(user, data)
             case SearchType.Manga:
                 return this.#generateEmbedForLiterature(user, data)
+            case SearchType.Games:
+                return this.#generateEmbedForGame(user, data)
             case SearchType.Characters:
                 return this.#generateEmbedForCharacter(user, data)
             default:
@@ -629,6 +625,148 @@ class KurozoraManager {
     }
 
     /**
+     *  Generates a message embed for the given game.
+     *
+     * @param {} user - user
+     * @param {Object<string, *>} game - game
+     *
+     * @returns {MessageEmbed}
+     */
+    #generateEmbedForGame(user, game) {
+        const synopsis = game.attributes.synopsis
+        const poster = game.attributes.poster
+        const banner = game.attributes.banner
+        const kurozoraURL = `https://kurozora.app/games/${game.attributes.slug}`
+        const copyright = game.attributes.copyright
+        const broadcast = this.#getBroadcast(game)
+        const ran = this.#getRunningDates(game)
+        const runningSeasonEmoji = this.#getRunningSeasonEmoji(game)
+        const rating = this.#getRating(game)
+        const genres = this.#getGenres(game)
+        const themes = this.#getThemes(game)
+
+        const messageEmbed = new MessageEmbed()
+            .setTitle('🕹️ ' + game.attributes.title)
+            .setURL(kurozoraURL)
+            .setAuthor({
+                name: user.username,
+                iconURL: user.displayAvatarURL({
+                    size: 1024,
+                    dynamic: true
+                })
+            })
+
+        if (synopsis) {
+            messageEmbed.setDescription(synopsis)
+        }
+
+        if (poster) {
+            messageEmbed.setThumbnail(poster.url)
+                .setColor(poster.backgroundColor)
+        } else {
+            messageEmbed.setColor('#FF9300')
+        }
+
+        messageEmbed.addFields(
+            {
+                name: '⏳ Status',
+                value: game.attributes.status.name,
+                inline: true
+            },
+            {
+                name: `${runningSeasonEmoji} Season`,
+                value: game.attributes.publicationSeason,
+                inline: true
+            },
+            {
+                name: '📺 Type',
+                value: game.attributes.type.name,
+                inline: true
+            },
+            {
+                name: '🎯 Source',
+                value: game.attributes.source.name,
+                inline: true
+            },
+            {
+                name: '🔣 Age Rating',
+                value: game.attributes.tvRating.name,
+                inline: true
+            },
+            {
+                name: '\u200B',
+                value: '\u200B',
+                inline: true
+            },
+            {
+                name: '🎭 Genres',
+                value: genres
+            },
+            {
+                name: '🎡 Themes',
+                value: themes
+            }
+        )
+
+        if (broadcast) {
+            messageEmbed.addFields({
+                name: '📡 Publication',
+                value: broadcast,
+                inline: true
+            })
+        }
+
+        if (ran) {
+            messageEmbed.addFields({
+                name: '📆 Published',
+                value: ran,
+                inline: true
+            })
+        }
+
+        messageEmbed.addFields({
+                name: '\u200B',
+                value: '\u200B',
+                inline: true
+            },
+            {
+                name: '🎮 Editions',
+                value: `${game.attributes.editionCount}`,
+                inline: true
+            },
+            {
+                name: '⏱ Duration',
+                value: game.attributes.duration,
+                inline: true
+            },
+            {
+                name: '\u200B',
+                value: '\u200B',
+                inline: true
+            },
+        )
+
+        if (rating) {
+            messageEmbed.addFields({
+                name: '⭐️ Rating',
+                value: rating
+            })
+        }
+
+        if (banner) {
+            messageEmbed.setImage(banner.url)
+        }
+
+        if (copyright) {
+            messageEmbed.setFooter({
+                text: copyright,
+            })
+        }
+
+        return messageEmbed
+    }
+
+    /**
      *  Generates a message embed for the given character.
      *
      * @param {} user - user
@@ -767,7 +905,7 @@ class KurozoraManager {
      */
     #getRunningDates(media) {
         let ran = ''
-        const startedAt = media.attributes.startedAt
+        const startedAt = media.attributes.startedAt ?? media.attributes.publishedAt
         const endedAt = media.attributes.endedAt
 
         if (startedAt) {

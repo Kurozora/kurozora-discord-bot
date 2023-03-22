@@ -210,7 +210,7 @@ class MusicManager {
 			.then(response => response.results)
 			.catch(error => console.error(error))
 
-		if (response.songs != undefined) {
+		if (response?.songs !== undefined) {
 			return response.songs.data[0]
 		}
 

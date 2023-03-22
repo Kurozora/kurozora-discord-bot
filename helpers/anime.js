@@ -3,7 +3,7 @@ const { Client, MessageEmbed } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { SearchType } = require.main.require('./enums/SearchType')
 const { CharacterStatus } = require.main.require('./enums/CharacterStatus')
-const satouChanURL = process.env['SATOU_CHAN_URL']
+const apiURL = process.env['KISARA_URL']
 
 class AnimeManager {
     // MARK: - Properties
@@ -40,7 +40,7 @@ class AnimeManager {
      */
     async search(interaction, type) {
         await interaction.deferReply()
-        const {url} = await this.#search(type)
+        const {url} = await this.searchForType(type)
         return interaction.editReply({files: [url]})
     }
 
@@ -51,8 +51,8 @@ class AnimeManager {
      *
      * @returns {Object<string, *>} data - data
      */
-    async #search(type) {
-        let url = satouChanURL + '/' + type
+    async searchForType(type) {
+        let url = apiURL + '/' + type
         const response = await axios.get(url)
             .then(response => response.data)
             .catch(function(error) {
@@ -61,7 +61,7 @@ class AnimeManager {
             })
 
         if (!response) {
-            return this.#search(type)
+            return this.search(type)
         }
 
         return response
