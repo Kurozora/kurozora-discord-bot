@@ -1,5 +1,5 @@
 const axios = require('axios')
-const { Client, MessageEmbed } = require('discord.js')
+const { Client, EmbedBuilder } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { SearchType } = require.main.require('./enums/SearchType')
 const { CharacterStatus } = require.main.require('./enums/CharacterStatus')
@@ -88,6 +88,7 @@ class KurozoraManager {
             const value = parseInt(query.content)
 
             if (!value || value <= 0 || value > data.length) {
+                console.log('----- value',  value, query.content.toLowerCase(), query.content, query);
                 return collector.channel.send({
                     content: `❌ | Invalid response, try a value between **1** and **${data.length}** or **cancel**`,
                     ephemeral: true
@@ -263,10 +264,10 @@ class KurozoraManager {
      * @param {string} type - type
      * @param {Object<string, *>} data - data
      *
-     * @returns {MessageEmbed}
+     * @returns {EmbedBuilder}
      */
     async #getSearchEmbed(interaction, type, data) {
-        const embed = new MessageEmbed()
+        const embed = new EmbedBuilder()
         embed.setColor('#FF9300')
         embed.setAuthor({
             name: interaction.user.username,
@@ -310,7 +311,7 @@ class KurozoraManager {
      * @param {string} type - type
      * @param {Object<string, *>} data - data
      *
-     * @returns {string|MessageEmbed}
+     * @returns {string|EmbedBuilder}
      */
     #generateEmbedForType(user, type, data) {
         switch (type) {
@@ -333,7 +334,7 @@ class KurozoraManager {
      * @param {} user - user
      * @param {Object<string, *>} anime - anime
      *
-     * @returns {MessageEmbed}
+     * @returns {EmbedBuilder}
      */
     #generateEmbedForShow(user, anime) {
         const synopsis = anime.attributes.synopsis
@@ -348,7 +349,7 @@ class KurozoraManager {
         const genres = this.#getGenres(anime)
         const themes = this.#getThemes(anime)
 
-        const messageEmbed = new MessageEmbed()
+        const messageEmbed = new EmbedBuilder()
             .setTitle('📺 ' + anime.attributes.title)
             .setURL(characterURL)
             .setAuthor({
@@ -479,7 +480,7 @@ class KurozoraManager {
      * @param {} user - user
      * @param {Object<string, *>} literature - literature
      *
-     * @returns {MessageEmbed}
+     * @returns {EmbedBuilder}
      */
     #generateEmbedForLiterature(user, literature) {
         const synopsis = literature.attributes.synopsis
@@ -494,7 +495,7 @@ class KurozoraManager {
         const genres = this.#getGenres(literature)
         const themes = this.#getThemes(literature)
 
-        const messageEmbed = new MessageEmbed()
+        const messageEmbed = new EmbedBuilder()
             .setTitle('📙 ' + literature.attributes.title)
             .setURL(kurozoraURL)
             .setAuthor({
@@ -630,7 +631,7 @@ class KurozoraManager {
      * @param {} user - user
      * @param {Object<string, *>} game - game
      *
-     * @returns {MessageEmbed}
+     * @returns {EmbedBuilder}
      */
     #generateEmbedForGame(user, game) {
         const synopsis = game.attributes.synopsis
@@ -645,7 +646,7 @@ class KurozoraManager {
         const genres = this.#getGenres(game)
         const themes = this.#getThemes(game)
 
-        const messageEmbed = new MessageEmbed()
+        const messageEmbed = new EmbedBuilder()
             .setTitle('🕹️ ' + game.attributes.title)
             .setURL(kurozoraURL)
             .setAuthor({
@@ -772,7 +773,7 @@ class KurozoraManager {
      * @param {} user - user
      * @param {Object<string, *>} character - character
      *
-     * @returns {MessageEmbed}
+     * @returns {EmbedBuilder}
      */
     #generateEmbedForCharacter(user, character) {
         const synopsis = character.attributes.synopsis
@@ -783,7 +784,7 @@ class KurozoraManager {
         const bWH = this.#getBWH(character)
         const kurozoraURL = `https://kurozora.app/characters/${character.attributes.slug}`
 
-        const messageEmbed = new MessageEmbed()
+        const messageEmbed = new EmbedBuilder()
             .setTitle('👤 ' + character.attributes.name)
             .setURL(kurozoraURL)
             .setAuthor({

@@ -35,6 +35,8 @@ const client = new Client({
 	intents: [
 		GatewayIntentBits.Guilds,
 		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.MessageContent,
+		// GatewayIntentBits.GuildMembers,
 		GatewayIntentBits.GuildEmojisAndStickers,
 		GatewayIntentBits.GuildVoiceStates,
 	]
@@ -171,7 +173,7 @@ client.on('messageCreate', async message => {
 client.on('interactionCreate', async interaction => {
 	if (interaction.isCommand()) {
 		return await handleCommand(interaction)
-	} else if (interaction.isSelectMenu()) {
+	} else if (interaction.isStringSelectMenu()) {
 		return await handleSelectMenu(interaction)
 	} else if (interaction.isButton()) {
 		return await handleButton(interaction)
@@ -195,8 +197,8 @@ async function handleCommand(interaction) {
 		}
 		case 'cat': {
 			await interaction.deferReply()
-			const {file} = await getCat()
-			return interaction.editReply({files: [file]})
+			const {url} = await getCat()
+			return interaction.editReply({files: [url]})
 		}
 		case 'dog': {
 			await interaction.deferReply()
@@ -410,15 +412,15 @@ function cleanTwitterLink(link) {
  * Get a random cat picture and return the response.
  */
 async function getCat() {
-	const response = await axios.get('https://aws.random.cat/meow')
+	const response = await axios.get('https://api.thecatapi.com/v1/images/search')
 			.then(response => response.data)
 			.catch(error => console.error(error))
 
-	if (!response) {
+	if (typeof response[0] === 'undefined') {
 		return getCat()
 	}
 
-	return response
+	return response[0]
 }
 
 // channel = await client.channels.fetch(channelID)

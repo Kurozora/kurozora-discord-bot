@@ -1,4 +1,4 @@
-const { Interaction, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, Permissions, ThreadManager } = require('discord.js')
+const { Interaction, ActionRowBuilder, ButtonBuilder, EmbedBuilder, StringSelectMenuBuilder, PermissionFlagsBits, ThreadManager } = require('discord.js')
 const moment = require('moment')
 const { Database } = require('sqlite')
 
@@ -15,14 +15,14 @@ class PollManager {
 	db
 
 	/**
-	 * @param {MessageActionRow} closeButton - close button
+	 * @param {ActionRowBuilder} closeButton - close button
 	 */
-	closeButton = new MessageActionRow()
+	closeButton = new ActionRowBuilder()
 		.addComponents(
-			new MessageButton()
+			new ButtonBuilder()
 				.setCustomId('close_poll')
 				.setLabel('Close Poll')
-				.setStyle('DANGER'),
+				.setStyle('Danger'),
 		)
 
 	// MARK: - Initializers
@@ -53,8 +53,8 @@ class PollManager {
 
 		let roleName = 'Poll Manager'
 
-		if (interaction.guild.roles.cache.find(role => role.name == roleName) || interaction.member.permissions.has(Permissions.FLAGS['MANAGE_GUILD'])) {
-			if (interaction.member.roles.cache.some(role => role.name === roleName) || interaction.member.permissions.has(Permissions.FLAGS['MANAGE_GUILD'])) {
+		if (interaction.guild.roles.cache.find(role => role.name == roleName) || interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+			if (interaction.member.roles.cache.some(role => role.name === roleName) || interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
 				const pollOptionsArr = [...new Set(pollOptions.split(','))]
 				const labelArr = pollOptionsArr.map(x => ({
 					label: x,
@@ -68,14 +68,14 @@ class PollManager {
 						ephemeral: true,
 					}).catch(error => console.error(error))
 				} else {
-					const selectionMenu = new MessageActionRow()
+					const selectionMenu = new ActionRowBuilder()
 						.addComponents(
-							new MessageSelectMenu()
+							new StringSelectMenuBuilder()
 								.setCustomId('poll')
 								.setPlaceholder('Select an option...')
 								.addOptions(labelArr),
 						)
-					const embed = new MessageEmbed()
+					const embed = new EmbedBuilder()
 						.setColor('#FF9300')
 						.setTitle(embedTitle)
 						.setDescription(embedDescription)
@@ -111,7 +111,7 @@ class PollManager {
 					}
 
 					if (createThread == true) {
-						if (interaction.channel.permissionsFor(interaction.applicationId).has(['MANAGE_THREADS'])) {
+						if (interaction.channel.permissionsFor(interaction.applicationId).has(PermissionFlagsBits.ManageThreads)) {
 							const thread = await interaction.channel.threads.create({
 								startMessage: message.id,
 								name: `${embedTitle}`,
@@ -119,7 +119,7 @@ class PollManager {
 								reason: 'Thread created for a poll.',
 							})
 						} else {
-							const threadEmbed = new MessageEmbed()
+							const threadEmbed = new EmbedBuilder()
 								.setColor('#FF9300')
 								.setTitle(`Thread Creation Error`)
 								.setDescription(`An error occured while creating the thread for the poll.\n\nPlease add the \`MANAGE_THREADS\` permission to access this feature.`)
@@ -140,7 +140,7 @@ class PollManager {
 				}).catch(error => console.error(error))
 			}
 		} else {
-			if (interaction.channel.permissionsFor(interaction.applicationId).has(['MANAGE_ROLES'])) {
+			if (interaction.channel.permissionsFor(interaction.applicationId).has(PermissionFlagsBits.ManageRoles)) {
 				interaction.guild.roles.create({
 					name: roleName,
 					color: '#FF9300',
@@ -216,12 +216,19 @@ class PollManager {
 				let pollItem = pollItemLoop.toString().split(',').join('\r\n')
 				let graph = graphLoop.toString().split(',').join('\r\n')
 
-				const embed = new MessageEmbed()
+				const embed = new EmbedBuilder()
 					.setColor('#FF9300')
 					.setTitle(`${interaction.message.embeds[0].title}`)
 					.setDescription(`${interaction.message.embeds[0].description}`)
-					.addField(`Option`, pollItem, true)
-					.addField(`Results (Total Votes: ${graphTotalVotes})`, graph, true)
+					.addFields({
+						name: `Option`,
+						value: pollItem,
+						inline: true
+					}, {
+						name: `Results (Total Votes: ${graphTotalVotes})`,
+						value: graph,
+						inline: true
+					})
 
 				await interaction.update({
 					embeds: [embed],
@@ -272,12 +279,19 @@ class PollManager {
 			let pollItem = pollItemLoop.toString().split(',').join('\r\n')
 			let graph = graphLoop.toString().split(',').join('\r\n')
 
-			const embed = new MessageEmbed()
+			const embed = new EmbedBuilder()
 				.setColor('#FF9300')
 				.setTitle(`${interaction.message.embeds[0].title}`)
 				.setDescription(`${interaction.message.embeds[0].description}`)
-				.addField(`Option`, pollItem, true)
-				.addField(`Results (Total Votes: ${graphTotalVotes})`, graph, true)
+				.addFields({
+					name: `Option`,
+					value: pollItem,
+					inline: true
+				}, {
+					name: `Results (Total Votes: ${graphTotalVotes})`,
+					value: graph,
+					inline: true
+				})
 
 			await interaction.update({
 				embeds: [embed],
@@ -306,7 +320,7 @@ class PollManager {
 	async close(interaction) {
 		let roleName = 'Poll Manager'
 
-		if (interaction.member.roles.cache.some(role => role.name === roleName) || interaction.member.permissions.has(Permissions.FLAGS['MANAGE_GUILD'])) {
+		if (interaction.member.roles.cache.some(role => role.name === roleName) || interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
 			const result = await this.db.all(`SELECT *
 											 FROM "poll-${interaction.message.id}"
 											 ORDER BY voteCount DESC`)
@@ -329,13 +343,22 @@ class PollManager {
 			let pollItem = pollItemLoop.toString().split(',').join('\r\n')
 			let graph = graphLoop.toString().split(',').join('\r\n')
 
-			const embed = new MessageEmbed()
+			const embed = new EmbedBuilder()
 				.setColor('#FF9300')
 				.setTitle(`${interaction.message.embeds[0].title}`)
 				.setDescription(`${interaction.message.embeds[0].description}`)
-				.addField(`Option`, pollItem, true)
-				.addField(`Results (Total Votes: ${graphTotalVotes})`, graph, true)
-				.setFooter(`Poll closed at ${interaction.createdAt} by ${interaction.member.displayName}`)
+				.addFields({
+					name: `Option`,
+					value: pollItem,
+					inline: true
+				}, {
+					name: `Results (Total Votes: ${graphTotalVotes})`,
+					value: graph,
+					inline: true
+				})
+				.setFooter({
+					text: `Poll closed at ${interaction.createdAt} by ${interaction.member.displayName}`
+				})
 
 			try {
 				await interaction.update({
