@@ -4,6 +4,7 @@ const { REST } = require('@discordjs/rest')
 const { SearchType } = require.main.require('./enums/SearchType')
 const { CharacterStatus } = require.main.require('./enums/CharacterStatus')
 const kurozoraURL = process.env['KUROZORA_URL']
+const kurozoraAPIURL = process.env['KUROZORA_API_URL']
 
 class KurozoraManager {
     // MARK: - Properties
@@ -135,7 +136,7 @@ class KurozoraManager {
      * @returns {Object<string, *>} data - data
      */
     async #search(query, type, scope = 'kurozora', limit = 5) {
-        const data = await axios.get(kurozoraURL + '/v1/search', {
+        const data = await axios.get(kurozoraAPIURL + '/v1/search', {
             params: {
                 'scope': scope,
                 'types': [type],
@@ -238,7 +239,7 @@ class KurozoraManager {
      * @returns {Object<string, *>|string}
      */
     async getModelDetails(url) {
-        const data = await axios.get(kurozoraURL + url)
+        const data = await axios.get(kurozoraAPIURL + url)
             .then(function(response) {
                 const { data } = response.data
 
@@ -486,7 +487,7 @@ class KurozoraManager {
         const synopsis = literature.attributes.synopsis
         const poster = literature.attributes.poster
         const banner = literature.attributes.banner
-        const kurozoraURL = `https://kurozora.app/manga/${literature.attributes.slug}`
+        const kurozoraURL = `${kurozoraURL}/manga/${literature.attributes.slug}`
         const copyright = literature.attributes.copyright
         const broadcast = this.#getBroadcast(literature)
         const ran = this.#getRunningDates(literature)
@@ -637,7 +638,7 @@ class KurozoraManager {
         const synopsis = game.attributes.synopsis
         const poster = game.attributes.poster
         const banner = game.attributes.banner
-        const kurozoraURL = `https://kurozora.app/games/${game.attributes.slug}`
+        const kurozoraURL = `${kurozoraURL}/games/${game.attributes.slug}`
         const copyright = game.attributes.copyright
         const broadcast = this.#getBroadcast(game)
         const ran = this.#getRunningDates(game)
@@ -782,7 +783,7 @@ class KurozoraManager {
         const astrologicalSignEmoji = this.#astrologicalSignEmoji(character)
         const astrologicalSignString = this.#astrologicalSignString(character)
         const bWH = this.#getBWH(character)
-        const kurozoraURL = `https://kurozora.app/characters/${character.attributes.slug}`
+        const kurozoraURL = `${kurozoraURL}/characters/${character.attributes.slug}`
 
         const messageEmbed = new EmbedBuilder()
             .setTitle('👤 ' + character.attributes.name)
