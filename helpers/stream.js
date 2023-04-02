@@ -1,6 +1,6 @@
 const { Client, Invite, User, VoiceChannel } = require('discord.js')
 const { REST } = require('@discordjs/rest')
-const { Routes } = require('discord-api-types/v9')
+const { Routes } = require('discord-api-types/v10')
 
 class StreamManager {
 	// MARK: - Properties
@@ -38,13 +38,14 @@ class StreamManager {
 	async streamInvite(voiceChannel, user) {
 		try {
 			console.log('Generating stream invite code.')
+			console.log(Routes.channelInvites(voiceChannel.id), user.id)
 
 			/** @param {Invite} response - response */
 			let response = await this.rest.post(
 				Routes.channelInvites(voiceChannel.id),
 				{
 					body: {
-						target_user_id: user.id,
+						target_user_id: user.id, // or KuroBot: 954674154924294184
 						target_type: 1,
 						temporary: false
 					}

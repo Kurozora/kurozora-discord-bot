@@ -36,13 +36,12 @@ const client = new Client({
 		GatewayIntentBits.Guilds,
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.MessageContent,
-		// GatewayIntentBits.GuildMembers,
 		GatewayIntentBits.GuildEmojisAndStickers,
 		GatewayIntentBits.GuildVoiceStates,
 	]
 })
 client.player = new Player(client)
-const rest = new REST({ version: '9' })
+const rest = new REST({ version: '10' })
 	.setToken(token)
 
 // Initialize managers

@@ -2,39 +2,39 @@ const { Player } = require('discord-player')
 
 /** @param {Player} player - player */
 module.exports.registerPlayerEvents = (player) => {
-	player.on('error', (queue, error) => {
+	player.events.on('error', (queue, error) => {
 		console.log(`[${queue.guild.name}] Error emitted from the queue: ${error.message}`)
 	});
 
-	player.on('connectionError', (queue, error) => {
+	player.events.on('playerError', (queue, error) => {
 		console.log(`[${queue.guild.name}] Error emitted from the connection: ${error.message}`)
 	});
 
-	player.on('trackStart', (queue, track) => {
+	player.events.on('playerStart', (queue, track) => {
 		queue.metadata.channel.send({
-			content: `🎵 | Playing: **${track.title}** in **${queue.connection.channel.name}**!`
+			content: `🎵 | Playing: **${track.title}** in **${queue.channel.name}**!`
 		}).catch(e => console.error(e))
 	});
 
-	player.on('trackAdd', (queue, track) => {
+	player.events.on('audioTrackAdd', (queue, track) => {
 		queue.metadata.channel.send({
 			content: `📋 | Track **${track.title}** queued!`
 		}).catch(e => console.error(e))
 	});
 
-	player.on('botDisconnect', (queue) => {
+	player.events.on('disconnect', (queue) => {
 		queue.metadata.channel.send({
 			content: '❌ | I was manually disconnected from the voice channel, clearing queue!'
 		}).catch(e => console.error(e))
 	});
 
-	player.on('channelEmpty', (queue) => {
+	player.events.on('emptyChannel', (queue) => {
 		queue.metadata.channel.send({
 			content: '⏏️ | Nobody is in the voice channel, leaving...'
 		}).catch(e => console.error(e))
 	});
 
-	player.on('queueEnd', (queue) => {
+	player.events.on('queueEnd', (queue) => {
 		queue.metadata.channel.send({
 			content: '✅ | Queue finished!'
 		}).catch(e => console.error(e))

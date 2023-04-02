@@ -1,6 +1,6 @@
 const axios = require('axios')
 const qs = require('qs')
-const { Client, Interaction, MessageEmbed, VoiceChannel } = require('discord.js')
+const { Client, Interaction, EmbedBuilder, VoiceChannel } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { VoiceConnection } = require('@discordjs/voice')
 const { Player, QueueRepeatMode } = require('discord-player')
@@ -189,7 +189,7 @@ class MusicManager {
 	 * @param {Interaction} interaction - The interaction responsible for the action
 	 */
 	playBackQueueIsEmpty(queue, interaction) {
-		if (!queue || !queue.playing) {
+		if (!queue || !queue.node.isPlaying()) {
 			interaction.reply({
 				content: '❌ | Playback queue is empty',
 				ephemeral: true
@@ -260,7 +260,7 @@ class MusicManager {
 			.then(x => x.tracks)
 			.catch(e => console.error(e))
 
-		if (!tracks || !tracks.length) {
+		if (!tracks || !tracks.size) {
 			return interaction.reply({
 				content: `❌ | Track **${searchQuery}** not found!`,
 				ephemeral: true
@@ -268,9 +268,9 @@ class MusicManager {
 		}
 
 		const maxTracks = tracks.slice(0, 5)
-		const embed = new MessageEmbed()
+		const embed = new EmbedBuilder()
 
-		embed.setColor('#FF9300')
+		embed.setColor(0xFF9300)
 		embed.setAuthor({
 			name: `${interaction.user.username}`,
 			iconURL: interaction.user.displayAvatarURL({
@@ -375,9 +375,11 @@ class MusicManager {
 	 * @param {string} searchQuery - video link
 	 */
 	async queue(voiceChannel, interaction, searchQuery) {
-		const queue = this.player.createQueue(interaction.guild, {
+		const queue = this.player.nodes.create(interaction.guild, {
 			metadata: {
-				channel: interaction.channel
+				channel: interaction.channel,
+				client: interaction.guild.members.me,
+				requestedBy: interaction.user,
 			}
 		})
 
@@ -387,7 +389,7 @@ class MusicManager {
 				await queue.connect(voiceChannel)
 			}
 		} catch {
-			queue.destroy()
+			queue.delete()
 			return interaction.reply({
 				content: '❌ | Could not join the voice channel.',
 				ephemeral: true
@@ -412,7 +414,7 @@ class MusicManager {
 			ephemeral: true
 		}).catch(e => console.error(e))
 
-		return queue.play(track)
+		return queue.node.play(track)
 	}
 
 	/**
@@ -421,16 +423,16 @@ class MusicManager {
 	 * @param {Interaction} interaction - interaction
 	 */
 	play(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
+		const queue = this.player.nodes.get(interaction.guild.id)
 
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
 			return
 		}
 
-		const success = queue.setPaused(false)
+		const success = queue.node.resume()
 
 		return interaction.reply({
-			content: success ? `▶️ | **${queue.current.title}** is playing.` : '❌ | Something went wrong.'
+			content: success ? `▶️ | **${queue.currentTrack.title}** is playing.` : '❌ | Something went wrong.'
 		}).catch(e => console.error(e))
 	}
 
@@ -440,16 +442,16 @@ class MusicManager {
 	 * @param {Interaction} interaction - interaction
 	 */
 	pause(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
+		const queue = this.player.nodes.get(interaction.guild.id)
 
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
 			return
 		}
 
-		const success = queue.setPaused(true)
+		const success = queue.node.pause()
 
 		return interaction.reply({
-			content: success ? `⏸ | **${queue.current.title}** has stopped.` : '❌ | Something went wrong.'
+			content: success ? `⏸ | **${queue.currentTrack.title}** has stopped.` : '❌ | Something went wrong.'
 		}).catch(e => console.error(e))
 	}
 
@@ -459,16 +461,16 @@ class MusicManager {
 	 * @param {Interaction} interaction - interaction
 	 */
 	forwards(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
+		const queue = this.player.nodes.get(interaction.guild.id)
 
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
 			return
 		}
 
-		const success = queue.skip()
+		const success = queue.node.skip()
 
 		return interaction.reply({
-			content: success ? `⏭ | **${queue.current.title}** skipped.` : '❌ | Something went wrong'
+			content: success ? `⏭ | **${queue.currentTrack.title}** skipped.` : '❌ | Something went wrong'
 		}).catch(e => console.error(e))
 	}
 
@@ -478,20 +480,20 @@ class MusicManager {
 	 * @param {Interaction} interaction - interaction
 	 */
 	backwards(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
+		const queue = this.player.nodes.get(interaction.guild.id)
 
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
 			return
 		}
 
-		if (!queue.previousTracks[1]) {
+		if (!queue.history.previousTrack) {
 			return interaction.reply({
 				content: '❌ | A previous music doesn’t exist.',
 				ephemeral: true
 			}).catch(e => console.error(e))
 		}
 
-		const success = queue.back()
+		const success = queue.history.back()
 
 		return interaction.reply({
 			content: success ? '⏮ | Previous music started playing...' : '❌ | Something went wrong'
@@ -504,23 +506,23 @@ class MusicManager {
 	 * @param {Interaction} interaction - interaction
 	 */
 	shuffle(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
-		queue.shuffle
+		const queue = this.player.nodes.get(interaction.guild.id)
+
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
 			return
 		}
 
-		if (!queue.tracks[0]) {
+		if (!queue.tracks.toArray()[0]) {
 			return interaction.reply({
 				content: '❌ | There are no other songs to play.',
 				ephemeral: true
 			}).catch(e => console.error(e))
 		}
 
-		const success = queue.shuffle()
+		const success = queue.tracks.shuffle()
 
 		return interaction.reply({
-			content: success ? `🔀 | Queue shuffled **${queue.tracks.length}** song(s)!` : '❌ | Something went wrong'
+			content: success ? `🔀 | Queue shuffled **${queue.tracks.size}** song(s)!` : '❌ | Something went wrong'
 		}).catch(e => console.error(e))
 	}
 
@@ -530,7 +532,7 @@ class MusicManager {
 	 * @param {Interaction} interaction - interaction
 	 */
 	loop(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
+		const queue = this.player.nodes.get(interaction.guild.id)
 		const loopMode = interaction.options.getString('mode') ?? interaction.options.getString('info')
 
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
@@ -543,7 +545,7 @@ class MusicManager {
 				return interaction.reply({
 					embeds: [{
 						description: `🔁 | Looping the **queue**.`,
-						color: '#FF9300'
+						color: 0xFF9300
 					}]
 				})
 			} else if (queue.repeatMode === QueueRepeatMode.QUEUE) {
@@ -551,7 +553,7 @@ class MusicManager {
 				return interaction.reply({
 					embeds: [{
 						description: `🔂 | Looping the **current track**.`,
-						color: '#FF9300'
+						color: 0xFF9300
 					}]
 				})
 			} else if (queue.repeatMode === QueueRepeatMode.TRACK) {
@@ -559,7 +561,7 @@ class MusicManager {
 				return interaction.reply({
 					embeds: [{
 						description: `✅ | Autoplay is **enabled**.`,
-						color: '#FF9300'
+						color: 0xFF9300
 					}]
 				})
 			} else if (queue.repeatMode === QueueRepeatMode.AUTOPLAY) {
@@ -567,7 +569,7 @@ class MusicManager {
 				return interaction.reply({
 					embeds: [{
 						description: `✅ | Loop is **disabled**.`,
-						color: '#FF9300'
+						color: 0xFF9300
 					}]
 				})
 			}
@@ -578,7 +580,7 @@ class MusicManager {
 			interaction.reply({
 				embeds: [{
 					description: `✅ | Loop is now disabled.`,
-					color: '#FF9300'
+					color: 0xFF9300
 				}]
 			})
 		} else if (loopMode.includes('track')) {
@@ -586,7 +588,7 @@ class MusicManager {
 			return interaction.reply({
 				embeds: [{
 					description: `🔂 | Looping the current track.`,
-					color: '#FF9300'
+					color: 0xFF9300
 				}]
 			})
 		} else if (loopMode.includes('queue')) {
@@ -594,7 +596,7 @@ class MusicManager {
 			return interaction.reply({
 				embeds: [{
 					description: `🔁 | Looping the queue.`,
-					color: '#FF9300'
+					color: 0xFF9300
 				}]
 			})
 		} else if (loopMode.includes('autoplay')) {
@@ -602,12 +604,12 @@ class MusicManager {
 			return interaction.reply({
 				embeds: [{
 					description: `▶️ | Autoplay has been enabled.`,
-					color: '#FF9300'
+					color: 0xFF9300
 				}]
 			})
 		} else if (loopMode.includes('status')) {
-			const embed = new MessageEmbed()
-			embed.setColor('#FF9300')
+			const embed = new EmbedBuilder()
+			embed.setColor(0xFF9300)
 
 			let mode
 			if (queue.repeatMode === QueueRepeatMode.OFF) {
@@ -633,24 +635,24 @@ class MusicManager {
 	 *
 	 * @param {Interaction} interaction - interaction
 	 */
-	clear(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
+	async clear(interaction) {
+		const queue = this.player.nodes.get(interaction.guild.id)
 
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
 			return
 		}
 
-		if (!queue.tracks[0]) {
+		if (!queue.tracks.toArray()[0]) {
 			return interaction.reply({
 				content: '❌ | The queue is already empty.',
 				ephemeral: true
 			}).catch(e => console.error(e))
 		}
 
-		const success = queue.clear()
+		await queue.tracks.clear()
 
 		return interaction.reply({
-			content: success ? '🗑️ | The queue has been cleared.' : '❌ | Something went wrong'
+			content: '🗑️ | The queue has been cleared.'
 		}).catch(e => console.error(e))
 	}
 
@@ -659,17 +661,17 @@ class MusicManager {
 	 *
 	 * @param {Interaction} interaction - interaction
 	 */
-	stop(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
+	async stop(interaction) {
+		const queue = this.player.nodes.get(interaction.guild.id)
 
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
 			return
 		}
 
-		const success = queue.destroy()
+		await queue.delete()
 
 		return interaction.reply({
-			content: success ? '⏹ | Playback has been turned off.' : '❌ | Something went wrong'
+			content: '⏹ | Playback has been turned off.'
 		}).catch(e => console.error(e))
 	}
 
@@ -679,7 +681,7 @@ class MusicManager {
 	 * @param {Interaction} interaction - interaction
 	 */
 	volume(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
+		const queue = this.player.nodes.get(interaction.guild.id)
 		const maxVolume = 100
 
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
@@ -689,9 +691,9 @@ class MusicManager {
 		// Return the current volume level, instructions for adjusting the volume if no volume level is given
 		const volumeLevel = interaction.options.getInteger('level')
 		if (!volumeLevel) {
-			const embed = new MessageEmbed()
-			embed.setColor('#FF9300')
-			embed.setDescription(`The volume is set on 🔊 ${queue.volume} \n*↳ Please enter between **1** and **${maxVolume}** to change the volume.*`)
+			const embed = new EmbedBuilder()
+			embed.setColor(0xFF9300)
+			embed.setDescription(`The volume is set on 🔊 ${queue.node.volume} \n*↳ Please enter between **1** and **${maxVolume}** to change the volume.*`)
 			return interaction.reply({
 				embeds: [embed],
 				ephemeral: true
@@ -699,9 +701,9 @@ class MusicManager {
 		}
 
 		// Check if the volume has already been set to the requested level
-		if (queue.volume === volumeLevel) {
-			const embed = new MessageEmbed()
-			embed.setColor('#FF9300')
+		if (queue.node.volume === volumeLevel) {
+			const embed = new EmbedBuilder()
+			embed.setColor(0xFF9300)
 			embed.setDescription(`The volume you want to change is the same as the current one. \n*↳ Please try again with a different number.*`)
 			return interaction.reply({
 				embeds: [embed]
@@ -710,20 +712,20 @@ class MusicManager {
 
 		// Check if the requested level is valid
 		if (volumeLevel < 0 || volumeLevel > maxVolume) {
-			const embed = new MessageEmbed()
-			embed.setColor('#FF9300')
+			const embed = new EmbedBuilder()
+			embed.setColor(0xFF9300)
 			embed.setDescription(`The specified number is not valid. \n*↳ Please enter between **1** and **${maxVolume}** to change the volume.*`)
 			return interaction.reply({
 				embeds: [embed]
 			})
 		}
 
-		const success = queue.setVolume(volumeLevel)
+		const success = queue.node.setVolume(volumeLevel)
 
 		return interaction.reply({
 			embeds: [{
 				description: success ? `✅ Volume set to ${volumeLevel}` : '❌ | Something went wrong',
-				color: '#FF9300'
+				color: 0xFF9300
 			}]
 		})
 	}
@@ -734,21 +736,21 @@ class MusicManager {
 	 * @param {Interaction} interaction - interaction
 	 */
 	list(interaction) {
-		const queue = this.player.getQueue(interaction.guild.id)
+		const queue = this.player.nodes.get(interaction.guild.id)
 
 		if (this.playBackQueueIsEmpty(queue, interaction)) {
 			return
 		}
 
-		if (!queue.tracks[0]) {
+		if (!queue.tracks.toArray()[0]) {
 			return interaction.reply({
 				content: `❌ | Queue is empty.`,
 				ephemeral: true
 			}).catch(e => console.error(e))
 		}
 
-		const embed = new MessageEmbed()
-		embed.setColor('#FF9300')
+		const embed = new EmbedBuilder()
+		embed.setColor(0xFF9300)
 		embed.setThumbnail(interaction.guild.iconURL({
 			size: 2048,
 			dynamic: true
@@ -757,10 +759,10 @@ class MusicManager {
 
 		const tracks = queue.tracks.map((track, i) => `**${i + 1}** - ${track.title} | ${track.author} (Started by <@${track.requestedBy.id}>)`)
 
-		const songs = queue.tracks.length
+		const songs = queue.tracks.size
 		const nextSongs = songs > 5 ? `...and **${songs - 5}** other songs.` : `There are **${songs}** songs in the list.`
 
-		embed.setDescription(`Currently Playing: \`${queue.current.title}\`\n\n${tracks.slice(0, 5).join('\n')}\n\n${nextSongs}`)
+		embed.setDescription(`Currently Playing: \`${queue.currentTrack.title}\`\n\n${tracks.slice(0, 5).join('\n')}\n\n${nextSongs}`)
 		embed.setTimestamp()
 
 		return interaction.reply({
