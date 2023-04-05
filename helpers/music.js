@@ -3,7 +3,7 @@ const qs = require('qs')
 const { Client, Interaction, EmbedBuilder, VoiceChannel } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { VoiceConnection } = require('@discordjs/voice')
-const { Player, QueueRepeatMode } = require('discord-player')
+const { Player, QueryType, QueueRepeatMode } = require('discord-player')
 const prism = require('@arno500/prism-media')
 const { pipeline } = require('stream')
 const MusicKit = require('node-musickit-api/promises')
@@ -255,12 +255,13 @@ class MusicManager {
 	 */
 	async search(interaction, searchQuery) {
 		const tracks = await this.player.search(searchQuery, {
-			requestedBy: interaction.user
+			requestedBy: interaction.user,
+			searchEngine: QueryType.YOUTUBE
 		})
 			.then(x => x.tracks)
 			.catch(e => console.error(e))
 
-		if (!tracks || !tracks.size) {
+		if (!tracks || !tracks.length) {
 			return interaction.reply({
 				content: `❌ | Track **${searchQuery}** not found!`,
 				ephemeral: true
@@ -397,7 +398,8 @@ class MusicManager {
 		}
 
 		const track = await this.player.search(searchQuery, {
-			requestedBy: interaction.user
+			requestedBy: interaction.user,
+			searchEngine: QueryType.YOUTUBE
 		})
 			.then(x => x.tracks[0])
 			.catch(e => console.error(e))
