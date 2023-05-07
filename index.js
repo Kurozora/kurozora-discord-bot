@@ -2,7 +2,7 @@ require('dotenv').config();
 const axios = require('axios')
 const fs = require('fs')
 const moment = require('moment')
-const { Client, GatewayIntentBits, Partials, MessageEmbed } = require('discord.js')
+const { Client, GatewayIntentBits, Partials, PermissionsBitField, MessageEmbed } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
@@ -17,6 +17,7 @@ const sqlite3 = require('sqlite3').verbose()
 const { Player } = require('discord-player');
 const { registerEvents } = require('./events/events')
 const { AnimeGifType } = require('./enums/AnimeGifType')
+const urlShorteners = require('./resources/url_shorteners.json')
 
 // MARK: - Properties
 const prefix = 'k!'
@@ -91,7 +92,29 @@ client.on('messageCreate', async message => {
 		return
 	}
 
+	if (message.content.toLowerCase() === 'bad bot') {
+		// Get the last two messages sent in the channel
+		message.channel.messages.fetch({
+			limit: 2
+		}).then(messages => {
+			const lastMessage = messages.last();
+
+			// Check if the last message was sent by the bot
+			if (lastMessage.author.id === client.user.id) {
+				// check if the user who sent the "bad bot" message is the same as the user who triggered the bot
+				if (message.author.id === lastMessage.interaction.user.id) {
+					lastMessage.delete();
+					message.delete()
+				}
+			}
+		}).catch(console.error);
+	}
+
 	if (!message.content.startsWith(prefix)) {
+		if (!message.member.permissions.has(PermissionsBitField.Flags.SendMessages)) {
+			return
+		}
+
 		const regexp = /https?:\/\/\S+/g;
 		const links = [...message.content.matchAll(regexp)]
 
@@ -100,13 +123,9 @@ client.on('messageCreate', async message => {
 
 			for (const link of links) {
 				const trimmedLink = link[0].trim()
-				const cleanUrl = await cleanUrlTracking(trimmedLink)
+				const isShortened = isShortenedLink(trimmedLink)
+				const cleanUrl = await cleanUrlTracking(trimmedLink, isShortened)
 				let cleanLink = cleanUrl.trim()
-
-				// YouTube
-				if (cleanLink.includes('youtube.com/shorts')) {
-					cleanLink = convertShortsToVideo(cleanLink)
-				}
 
 				// Twitter
 				if (cleanLink.includes('twitter.com') || cleanLink.includes('t.co')) {
@@ -122,9 +141,9 @@ client.on('messageCreate', async message => {
 				return
 			}
 
-			const plural =  cleanLinks.length === 1 ? 'is' : 'ese'
+			const thisOrThese =  cleanLinks.length === 1 ? 'this' : 'these'
 			const payload = cleanLinks.join('\n')
-			const response = `I cleaned th${plural} for you:\n${payload}`
+			const response = `I cleaned ${thisOrThese} for you:\n${payload}`
 			return message.reply(response)
 		}
 
@@ -147,12 +166,12 @@ client.on('messageCreate', async message => {
 		}
 
 		// Check for permissions because we don’t need everyone making webhooks!
-		if (!message.member.permissions.has('MANAGE_WEBHOOKS')) {
+		if (!message.member.permissions.has(PermissionsBitField.Flags.ManageWebhooks)) {
 			return message.channel.send('You are not authorized to do this!')
 		}
 
 		// What if the bot can’t do it?
-		if (!message.guild.me.permissions.has('MANAGE_WEBHOOKS')) {
+		if (!message.guild.me.permissions.has(PermissionsBitField.Flags.ManageWebhooks)) {
 			return message.channel.send(`I don’t have the proper permission (Manage Webhooks) to make webhooks!`)
 		}
 
@@ -360,15 +379,31 @@ async function handleButton(interaction) {
 }
 
 /**
- * Clean the given url from tracking
+ * Determines whether the given url is shortened link.
  *
- * @param {string} link
+ * @param url
+ * @returns {bool}
+ */
+function isShortenedLink(url) {
+	const shortenerDomains = urlShorteners.domains
+	const hostname = new URL(url).hostname
+	return shortenerDomains.some(domain => hostname.endsWith(domain))
+}
+
+/**
+ * Clean tracking parameters from the given url.
+ *
+ * Unshortens the url if `unshort` is set to true.
+ *
+ * @param {string} url - Link to clean
+ * @param {bool} unshort - Whether to unshorten the url. Default is false.
  * @returns {*|Promise<*>}
  */
-async function cleanUrlTracking(link) {
+async function cleanUrlTracking(url, unshort = false) {
 	return new Promise(function (success, nosuccess) {
 		const {spawn} = require('child_process')
-		const cleanUrlTracking = spawn('python', ['./python/CleanUrlTracking.py', link])
+		const pythonScript = unshort ? './python/UnshortAndCleanUrlTracking.py' : './python/CleanUrlTracking.py'
+		const cleanUrlTracking = spawn('python', [pythonScript, url])
 
 		cleanUrlTracking.stdout.on('data', function (data) {
 			console.log('stdout', data.toString())
@@ -381,18 +416,6 @@ async function cleanUrlTracking(link) {
 		})
 	})
 		.then(response => response.toString())
-}
-
-/**
- * Converts and returns a normal YouTube video URL.
- *
- * @param link
- * @returns {string}
- */
-function convertShortsToVideo(link) {
-	const arr = link.split(/(vi\/|v%3D|v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/)/)
-	const videoID = undefined !== arr[2] ? arr[2].split(/[^\w-]/i)[0] : arr[0]
-	return 'https://youtube.com/watch?v=' + videoID;
 }
 
 /**

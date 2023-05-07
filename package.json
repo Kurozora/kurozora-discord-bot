@@ -12,6 +12,7 @@
     "kurozora",
     "anime",
     "manga",
+    "game",
     "music",
     "search",
     "slash commands",
@@ -22,12 +23,12 @@
     "fox"
   ],
   "author": "Kirito",
-  "license": "All Rights Reserved",
+  "license": "GPLv3",
   "dependencies": {
     "@arno500/prism-media": "^2.0.0-alpha.1",
     "@discord-player/extractor": "^4.0",
     "@discordjs/opus": "^0.9",
-    "@discordjs/voice": "^0.15",
+    "@discordjs/voice": "^0.16",
     "@mapbox/node-pre-gyp": "^1.0.9",
     "@yujinakayama/apple-music": "^0.4.1",
     "axios": "^1.0",

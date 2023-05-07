@@ -3,7 +3,8 @@ const qs = require('qs')
 const { Client, Interaction, EmbedBuilder, VoiceChannel } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { VoiceConnection } = require('@discordjs/voice')
-const { Player, QueryType, QueueRepeatMode } = require('discord-player')
+const { Player, QueueRepeatMode } = require('discord-player')
+const { YouTubeExtractor } = require('@discord-player/extractor')
 const prism = require('@arno500/prism-media')
 const { pipeline } = require('stream')
 const MusicKit = require('node-musickit-api/promises')
@@ -70,7 +71,11 @@ class MusicManager {
 	constructor(client, rest, player) {
 		this.client = client
 		this.player = player
-		this.rest = rest
+		this.rest = rest;
+
+		(async () => {
+			await this.player.extractors.loadDefault()
+		})();
 	}
 
 	// MARK: - Functions
@@ -256,14 +261,14 @@ class MusicManager {
 	async search(interaction, searchQuery) {
 		const tracks = await this.player.search(searchQuery, {
 			requestedBy: interaction.user,
-			searchEngine: QueryType.YOUTUBE
+			searchEngine: `ext:${YouTubeExtractor.identifier}`
 		})
 			.then(x => x.tracks)
 			.catch(e => console.error(e))
 
 		if (!tracks || !tracks.length) {
 			return interaction.reply({
-				content: `❌ | Track **${searchQuery}** not found!`,
+				content: `❌ | Track **${searchQuery}** not found on YouTube, or YouTube changed their code again and the library we rely on hasn't been updated to support the new changes yet.`,
 				ephemeral: true
 			}).catch(e => console.error(e))
 		}
@@ -399,7 +404,7 @@ class MusicManager {
 
 		const track = await this.player.search(searchQuery, {
 			requestedBy: interaction.user,
-			searchEngine: QueryType.YOUTUBE
+			searchEngine: `ext:${YouTubeExtractor.identifier}`
 		})
 			.then(x => x.tracks[0])
 			.catch(e => console.error(e))
