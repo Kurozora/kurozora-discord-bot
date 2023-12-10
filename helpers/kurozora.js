@@ -62,12 +62,12 @@ class KurozoraManager {
         let embed = await this.#getSearchEmbed(interaction, type, data)
 
         if (typeof embed === 'string') {
-            return await interaction.reply({
+            return await interaction.followUp({
                 content: embed
             }).cache(e => console.log(e))
         }
 
-        await interaction.reply({
+        await interaction.followUp({
             content: `Search results for \`${searchQuery}\``,
             embeds: [embed]
         }).catch(e => console.error(e))
@@ -341,7 +341,7 @@ class KurozoraManager {
         const synopsis = anime.attributes.synopsis
         const poster = anime.attributes.poster
         const banner = anime.attributes.banner
-        const characterURL = `${kurozoraURL}/anime/${anime.attributes.slug}`
+        const webURL = `${kurozoraURL}/anime/${anime.attributes.slug}`
         const copyright = anime.attributes.copyright
         const broadcast = this.#getBroadcast(anime)
         const ran = this.#getRunningDates(anime)
@@ -352,7 +352,7 @@ class KurozoraManager {
 
         const messageEmbed = new EmbedBuilder()
             .setTitle('📺 ' + anime.attributes.title)
-            .setURL(characterURL)
+            .setURL(webURL)
             .setAuthor({
                 name: user.username,
                 iconURL: user.displayAvatarURL({
@@ -487,7 +487,7 @@ class KurozoraManager {
         const synopsis = literature.attributes.synopsis
         const poster = literature.attributes.poster
         const banner = literature.attributes.banner
-        const kurozoraURL = `${kurozoraURL}/manga/${literature.attributes.slug}`
+        const webURL = `${kurozoraURL}/manga/${literature.attributes.slug}`
         const copyright = literature.attributes.copyright
         const broadcast = this.#getBroadcast(literature)
         const ran = this.#getRunningDates(literature)
@@ -498,7 +498,7 @@ class KurozoraManager {
 
         const messageEmbed = new EmbedBuilder()
             .setTitle('📙 ' + literature.attributes.title)
-            .setURL(kurozoraURL)
+            .setURL(webURL)
             .setAuthor({
                 name: user.username,
                 iconURL: user.displayAvatarURL({
@@ -638,7 +638,7 @@ class KurozoraManager {
         const synopsis = game.attributes.synopsis
         const poster = game.attributes.poster
         const banner = game.attributes.banner
-        const kurozoraURL = `${kurozoraURL}/games/${game.attributes.slug}`
+        const webURL = `${kurozoraURL}/games/${game.attributes.slug}`
         const copyright = game.attributes.copyright
         const broadcast = this.#getBroadcast(game)
         const ran = this.#getRunningDates(game)
@@ -649,7 +649,7 @@ class KurozoraManager {
 
         const messageEmbed = new EmbedBuilder()
             .setTitle('🕹️ ' + game.attributes.title)
-            .setURL(kurozoraURL)
+            .setURL(webURL)
             .setAuthor({
                 name: user.username,
                 iconURL: user.displayAvatarURL({
@@ -783,11 +783,11 @@ class KurozoraManager {
         const astrologicalSignEmoji = this.#astrologicalSignEmoji(character)
         const astrologicalSignString = this.#astrologicalSignString(character)
         const bWH = this.#getBWH(character)
-        const kurozoraURL = `${kurozoraURL}/characters/${character.attributes.slug}`
+        const webURL = `${kurozoraURL}/characters/${character.attributes.slug}`
 
         const messageEmbed = new EmbedBuilder()
             .setTitle('👤 ' + character.attributes.name)
-            .setURL(kurozoraURL)
+            .setURL(webURL)
             .setAuthor({
                 name: user.username,
                 iconURL: user.displayAvatarURL({
