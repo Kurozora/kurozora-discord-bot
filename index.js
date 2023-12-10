@@ -132,6 +132,11 @@ client.on('messageCreate', async message => {
 					cleanLink = cleanTwitterLink(cleanLink)
 				}
 
+				// YouTube
+				if (cleanLink.includes('youtube.com') || cleanLink.includes('youtu.be')) {
+					cleanLink = cleanYouTubeLink(cleanLink)
+				}
+
 				if (trimmedLink.toLowerCase() !== cleanLink.toLowerCase()) {
 					cleanLinks.push(cleanLink)
 				}
@@ -427,6 +432,18 @@ async function cleanUrlTracking(url, unshort = false) {
 function cleanTwitterLink(link) {
 	let url = new URL(link);
 	url.searchParams.delete('t')
+	return url.href
+}
+
+/**
+ * Further cleans YouTube URLs.
+ *
+ * @param link
+ * @returns {string}
+ */
+function cleanYouTubeLink(link) {
+	let url = new URL(link);
+	url.searchParams.delete('si')
 	return url.href
 }
 
