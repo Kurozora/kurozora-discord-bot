@@ -9,11 +9,11 @@
 # Kurozora Discord Bot (KuroBot) [![NodeJS](https://img.shields.io/badge/NodeJS%2019.x-green.svg?style=flat&logo=nodedotjs&logoColor=white&color=339933)](https://nodejs.org) [![Kurozora Discord Server](https://img.shields.io/discord/449250093623934977?style=flat&label=&logo=Discord&logoColor=white&color=7289DA)](https://discord.gg/f3QFzGqsah) [![License](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat)](LICENSE)
 
 [Kurozora](https://kurozora.app) is your one-stop shop for everything anime!
-With KuroBot, you can easily search for anime, manga, games, music, characters, people, and studios from the biggest Japanese media library in the world.
+With Kurozora, you can easily search for anime, manga, games, music, characters, people, and studios from the biggest anime library in the world, Kurozora.app.
 
-The fetched data is presented in a nice embed which includes titles, synopsis, poster/banner images, status, type, source, TV/age rating, genres, themes, broadcast/publication dates, seasons/volumes/editions, episodes/chapters, duration, ratings, etc.
+The fetched data is presented in a nice embed which includes titles, synopsis, poster/banner images, status, type, source, TV/age rating, genres, themes, broadcast/publication dates, seasons/volumes/editions, episodes/chapters, duration, ratings, and so forth.
 
-But that’s not all. KuroBot is multipurpose and, among many stuff, allows you to quickly share anime GIFs, and search for anime music on YouTube, Spotify and Apple Music at the same time!
+But that’s not all. Kurozora is multipurpose and, among many stuff, allows you to quickly share anime GIFs, and search for anime music on YouTube, Spotify and Apple Music at the same time!
 
 Full feature-list:
 
@@ -39,10 +39,17 @@ Full feature-list:
         Loop
         Volume up/down
         Create stream links
-    Create polls
-    Clean URLs
-        Remove tracking parameters
-        Convert YouTube Shorts to normal video
+    Create anime polls
+
+# Screenshots
+
+| Anime GIFs | Music Search | VC Queue | Character Search |
+|------------|--------------|----------|------------------|
+| ![Kurozora sending an anime GIF.](.github/Assets/Screenshots/1.png) | ![Kurozora listing music streaming links for `sexy sexy by cascade`.](.github/Assets/Screenshots/2.png) | ![Kurozora displaying the music queue for music streamed in a voice chat.](.github/Assets/Screenshots/3.png) | ![Kurozora listing the characters found when searching for `subaru natsuki`.](.github/Assets/Screenshots/4.png) |
+
+| Character Details | Anime Search | Anime Details |
+|-------------------|--------------|---------------|
+| ![Kurozora displaying the details of `subaru natsuki`.](.github/Assets/Screenshots/5.png) | ![Kurozora listing the anime found when searching for `quality assurance in another world`.](.github/Assets/Screenshots/6.png) | ![Kurozora displaying the details of `quality assurance in another world`.](.github/Assets/Screenshots/7.png) |
 
 # Contributing
 
