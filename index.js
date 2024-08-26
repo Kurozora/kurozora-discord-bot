@@ -24,7 +24,7 @@ const prefix = 'k!'
 const webhookName = 'Kurozora_webhook'
 const token = process.env['TOKEN']
 const appID = process.env['APP_ID']
-var kurozoraGuildID = '449250093623934977'
+var guildID = process.env['GUILD_ID']
 var channelID = '935269731349430352'
 var channel = null
 
@@ -118,7 +118,7 @@ client.on('messageCreate', async message => {
 		}).catch(console.error);
 	}
 
-	if (message.guild.id != kurozoraGuildID) {
+	if (message.guild.id !== guildID) {
 		return
 	}
 
