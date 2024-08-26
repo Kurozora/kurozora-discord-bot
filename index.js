@@ -24,11 +24,14 @@ const prefix = 'k!'
 const webhookName = 'Kurozora_webhook'
 const token = process.env['TOKEN']
 const appID = process.env['APP_ID']
+var kurozoraGuildID = '449250093623934977'
 var channelID = '935269731349430352'
 var channel = null
 
 const commands = []
-const commandFiles = fs.readdirSync('./commands')
+const slashCommandFiles = fs.readdirSync('./commands/slashes')
+	.filter(file => file.endsWith('.js'))
+const contextMenuCommandFiles = fs.readdirSync('./commands/context menus')
 	.filter(file => file.endsWith('.js'))
 
 // Initialize client
@@ -62,8 +65,13 @@ const streamManager = new StreamManager(client, rest)
 const utilsManager = new UtilsManager(client, rest)
 
 // Add commands
-for (const file of commandFiles) {
-	const command = require(`./commands/${file}`)
+for (const file of slashCommandFiles) {
+	const command = require(`./commands/slashes/${file}`)
+	commands.push(command.data.toJSON())
+}
+
+for (const file of contextMenuCommandFiles) {
+	const command = require(`./commands/context menus/${file}`)
 	commands.push(command.data.toJSON())
 }
 
@@ -110,6 +118,10 @@ client.on('messageCreate', async message => {
 		}).catch(console.error);
 	}
 
+	if (message.guild.id != kurozoraGuildID) {
+		return
+	}
+
 	if (!message.content.startsWith(prefix)) {
 		if (!message.member.permissions.has(PermissionsBitField.Flags.SendMessages)) {
 			return
@@ -135,6 +147,12 @@ client.on('messageCreate', async message => {
 				// YouTube
 				if (cleanLink.includes('youtube.com') || cleanLink.includes('youtu.be')) {
 					cleanLink = cleanYouTubeLink(cleanLink)
+				}
+
+				try {
+					cleanLink = decodeURIComponent(cleanLink)
+				} catch (e) {
+					console.error('----- Error decoding URI', e)
 				}
 
 				if (trimmedLink.toLowerCase() !== cleanLink.toLowerCase()) {
@@ -194,7 +212,9 @@ client.on('messageCreate', async message => {
 
 /** Runs when an interaction is created by a user. */
 client.on('interactionCreate', async interaction => {
-	if (interaction.isCommand()) {
+	if (interaction.isContextMenuCommand()) {
+		return await handleContextMenu(interaction)
+	} else if (interaction.isCommand()) {
 		return await handleCommand(interaction)
 	} else if (interaction.isStringSelectMenu()) {
 		return await handleSelectMenu(interaction)
@@ -345,6 +365,65 @@ async function handleCommand(interaction) {
 }
 
 /**
+ * Handles the selected context menu.
+ *
+ * @param interaction - interaction
+ * @returns {Promise<*>}
+ */
+async function handleContextMenu(interaction) {
+	switch (interaction.commandName) {
+		case 'Search Anime': {
+			return await searchTypeInKurozora(interaction, 'shows')
+		}
+		case 'Search Character': {
+			return await searchTypeInKurozora(interaction, 'characters')
+		}
+		case 'Search Game': {
+			return await searchTypeInKurozora(interaction, 'games')
+		}
+		case 'Search Manga': {
+			return await searchTypeInKurozora(interaction, 'literatures')
+		}
+		case 'Search Person': {
+			return await searchTypeInKurozora(interaction, 'people')
+		}
+		case 'Search Studio': {
+			return await searchTypeInKurozora(interaction, 'studios')
+		}
+		default:
+			return interaction.reply({
+				content: 'This context menu command is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized. Please notify.',
+				ephemeral: true
+			})
+	}
+}
+
+/**
+ * Search the specified type in Kurozora.
+ *
+ * @param interaction
+ * @param type
+ * @returns {Promise<*|void>}
+ */
+async function searchTypeInKurozora(interaction, type) {
+	await interaction.deferReply()
+
+	let regex = /(?<delim>`)([^`]+)\k<delim>/gi
+	let message = await interaction.channel.messages.fetch(interaction.targetId)
+	let matches = [...message.content.matchAll(regex)]
+
+	if (matches.length) {
+		let query = matches[0][2]
+		return await kurozoraManager.search(interaction, type, query)
+	} else {
+		return interaction.channel.send({
+			content: 'No anime title found. Please make sure to surround the title with a delimiter such as: `title`, [[title]] or ((title))',
+			ephemeral: true
+		})
+	}
+}
+
+/**
  * Handles the selected menu.
  *
  * @param interaction - interaction
@@ -409,7 +488,7 @@ async function cleanUrlTracking(url, unshort = false) {
 	return new Promise(function (success, nosuccess) {
 		const {spawn} = require('child_process')
 		const pythonScript = unshort ? './python/UnshortAndCleanUrlTracking.py' : './python/CleanUrlTracking.py'
-		const cleanUrlTracking = spawn('python', [pythonScript, url])
+		const cleanUrlTracking = spawn('./python/.venv/bin/python', [pythonScript, url])
 
 		cleanUrlTracking.stdout.on('data', function (data) {
 			console.log('stdout', data.toString())
