@@ -149,13 +149,14 @@ client.on('messageCreate', async message => {
 					cleanLink = cleanYouTubeLink(cleanLink)
 				}
 
+				var decodedCleanLink = cleanLink
 				try {
-					cleanLink = decodeURIComponent(cleanLink)
+					decodedCleanLink = decodeURIComponent(cleanLink)
 				} catch (e) {
 					console.error('----- Error decoding URI', e)
 				}
 
-				if (trimmedLink.toLowerCase() !== cleanLink.toLowerCase()) {
+				if (trimmedLink.toLowerCase() !== decodedCleanLink.toLowerCase() && trimmedLink.toLowerCase() !== cleanLink.toLowerCase()) {
 					cleanLinks.push(cleanLink)
 				}
 			}
