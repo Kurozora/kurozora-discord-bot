@@ -399,8 +399,8 @@ class KurozoraManager {
                 inline: true
             },
             {
-                name: '\u200B',
-                value: '\u200B',
+                name: '🌐 Country',
+                value: anime.attributes.countryOfOrigin.name,
                 inline: true
             },
             {
@@ -545,8 +545,8 @@ class KurozoraManager {
                 inline: true
             },
             {
-                name: '\u200B',
-                value: '\u200B',
+                name: '🌐 Country',
+                value: literature.attributes.countryOfOrigin.name,
                 inline: true
             },
             {
@@ -696,8 +696,8 @@ class KurozoraManager {
                 inline: true
             },
             {
-                name: '\u200B',
-                value: '\u200B',
+                name: '🌐 Country',
+                value: game.attributes.countryOfOrigin.name,
                 inline: true
             },
             {
