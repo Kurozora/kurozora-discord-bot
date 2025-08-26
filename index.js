@@ -12,12 +12,12 @@ const { MusicManager } = require('./helpers/music')
 const { PollManager } = require('./helpers/poll')
 const { StreamManager } = require('./helpers/stream')
 const { UtilsManager } = require('./helpers/utils')
+const { LinkCleaner } = require('./helpers/link_cleaner')
 const { open } = require('sqlite')
 const sqlite3 = require('sqlite3').verbose()
 const { Player } = require('discord-player');
 const { registerEvents } = require('./events/events')
 const { AnimeGifType } = require('./enums/AnimeGifType')
-const urlShorteners = require('./resources/url_shorteners.json')
 
 // MARK: - Properties
 const prefix = 'k!'
@@ -63,6 +63,7 @@ var pollManager
 })()
 const streamManager = new StreamManager(client, rest)
 const utilsManager = new UtilsManager(client, rest)
+const linkCleaner = new LinkCleaner()
 
 // Add commands
 for (const file of slashCommandFiles) {
@@ -127,51 +128,7 @@ client.on('messageCreate', async message => {
 			return
 		}
 
-		const regexp = /https?:\/\/\S+/g;
-		const links = [...message.content.matchAll(regexp)]
-
-		if (links.length) {
-			const cleanLinks = []
-
-			for (const link of links) {
-				const trimmedLink = link[0].trim()
-				const isShortened = isShortenedLink(trimmedLink)
-				const cleanUrl = await cleanUrlTracking(trimmedLink, isShortened)
-				let cleanLink = cleanUrl.trim()
-
-				// Twitter
-				if (cleanLink.includes('twitter.com') || cleanLink.includes('t.co')) {
-					cleanLink = cleanTwitterLink(cleanLink)
-				}
-
-				// YouTube
-				if (cleanLink.includes('youtube.com') || cleanLink.includes('youtu.be')) {
-					cleanLink = cleanYouTubeLink(cleanLink)
-				}
-
-				var decodedCleanLink = cleanLink
-				try {
-					decodedCleanLink = decodeURIComponent(cleanLink)
-				} catch (e) {
-					console.error('----- Error decoding URI', e)
-				}
-
-				if (trimmedLink.toLowerCase() !== decodedCleanLink.toLowerCase() && trimmedLink.toLowerCase() !== cleanLink.toLowerCase()) {
-					cleanLinks.push(cleanLink)
-				}
-			}
-
-			if (!cleanLinks.length) {
-				return
-			}
-
-			const thisOrThese =  cleanLinks.length === 1 ? 'this' : 'these'
-			const payload = cleanLinks.join('\n')
-			const response = `I cleaned ${thisOrThese} for you:\n${payload}`
-			return message.reply(response)
-		}
-
-		return
+		return await linkCleaner.clean(message)
 	}
 
 	// Perform the requested command
@@ -462,70 +419,6 @@ async function handleButton(interaction) {
 				ephemeral: true
 			})
 	}
-}
-
-/**
- * Determines whether the given url is shortened link.
- *
- * @param url
- * @returns {bool}
- */
-function isShortenedLink(url) {
-	const shortenerDomains = urlShorteners.domains
-	const hostname = new URL(url).hostname
-	return shortenerDomains.some(domain => hostname.endsWith(domain))
-}
-
-/**
- * Clean tracking parameters from the given url.
- *
- * Unshortens the url if `unshort` is set to true.
- *
- * @param {string} url - Link to clean
- * @param {bool} unshort - Whether to unshorten the url. Default is false.
- * @returns {*|Promise<*>}
- */
-async function cleanUrlTracking(url, unshort = false) {
-	return new Promise(function (success, nosuccess) {
-		const {spawn} = require('child_process')
-		const pythonScript = unshort ? './python/UnshortAndCleanUrlTracking.py' : './python/CleanUrlTracking.py'
-		const cleanUrlTracking = spawn('./python/.venv/bin/python', [pythonScript, url])
-
-		cleanUrlTracking.stdout.on('data', function (data) {
-			console.log('stdout', data.toString())
-			success(data)
-		})
-
-		cleanUrlTracking.stderr.on('data', (data) => {
-			console.error(data.toString())
-			nosuccess(data)
-		})
-	})
-		.then(response => response.toString())
-}
-
-/**
- * Further cleans Twitter URLs.
- *
- * @param link
- * @returns {string}
- */
-function cleanTwitterLink(link) {
-	let url = new URL(link);
-	url.searchParams.delete('t')
-	return url.href
-}
-
-/**
- * Further cleans YouTube URLs.
- *
- * @param link
- * @returns {string}
- */
-function cleanYouTubeLink(link) {
-	let url = new URL(link);
-	url.searchParams.delete('si')
-	return url.href
 }
 
 /**

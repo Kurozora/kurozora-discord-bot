@@ -89,7 +89,6 @@ class KurozoraManager {
             const value = parseInt(query.content)
 
             if (!value || value <= 0 || value > data.length) {
-                console.log('----- value',  value, query.content.toLowerCase(), query.content, query);
                 return collector.channel.send({
                     content: `❌ | Invalid response, try a value between **1** and **${data.length}** or **cancel**`,
                     ephemeral: true
@@ -136,7 +135,11 @@ class KurozoraManager {
      * @returns {Object<string, *>} data - data
      */
     async #search(query, type, scope = 'kurozora', limit = 5) {
+        const headers = {
+            "User-Agent": "KurozoraBot/1.11.2 (app.kurozora.tracker; build:1255; KiritoPi 12.0.0) Axios/1.7.7",
+        }
         const data = await axios.get(kurozoraAPIURL + '/v1/search', {
+            headers,
             params: {
                 'scope': scope,
                 'types': [type],
@@ -239,7 +242,12 @@ class KurozoraManager {
      * @returns {Object<string, *>|string}
      */
     async getModelDetails(url) {
-        const data = await axios.get(kurozoraAPIURL + url)
+        const headers = {
+            "User-Agent": "KurozoraBot/1.11.2 (app.kurozora.tracker; build:1255; KiritoPi 12.0.0) Axios/1.7.7",
+        }
+        const data = await axios.get(kurozoraAPIURL + url, {
+            headers,
+        })
             .then(function(response) {
                 const { data } = response.data
 
