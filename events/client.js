@@ -6,7 +6,7 @@ module.exports.registerClientEvents = (client) => {
 	client.on('debug', console.log)
 
 	/** Runs one when the bot is online. */
-	client.once('ready', c => {
+	client.once('clientReady', c => {
 		console.log(`🚀 [${c.user.tag}] Running...`)
 		client.user.setActivity('kurozora.app', { type: ActivityType.Watching })
 	})
