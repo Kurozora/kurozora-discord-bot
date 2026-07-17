@@ -3,8 +3,9 @@ const { Client, EmbedBuilder } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { SearchType } = require.main.require('./enums/SearchType')
 const { CharacterStatus } = require.main.require('./enums/CharacterStatus')
-const kurozoraURL = process.env['KUROZORA_URL']
+const kurozoraURL = process.env['APP_URL']
 const kurozoraAPIURL = process.env['KUROZORA_API_URL']
+const appColor = parseInt(process.env['APP_COLOR'].replace('#', ''), 16)
 
 class KurozoraManager {
     // MARK: - Properties
@@ -277,7 +278,7 @@ class KurozoraManager {
      */
     async #getSearchEmbed(interaction, type, data) {
         const embed = new EmbedBuilder()
-        embed.setColor('#FF9300')
+        embed.setColor(appColor)
         embed.setAuthor({
             name: interaction.user.username,
             iconURL: interaction.user.displayAvatarURL({
@@ -377,7 +378,7 @@ class KurozoraManager {
             messageEmbed.setThumbnail(poster.url)
                 .setColor(poster.backgroundColor)
         } else {
-            messageEmbed.setColor('#FF9300')
+            messageEmbed.setColor(appColor)
         }
 
         messageEmbed.addFields(
@@ -523,7 +524,7 @@ class KurozoraManager {
             messageEmbed.setThumbnail(poster.url)
                 .setColor(poster.backgroundColor)
         } else {
-            messageEmbed.setColor('#FF9300')
+            messageEmbed.setColor(appColor)
         }
 
         messageEmbed.addFields(
@@ -674,7 +675,7 @@ class KurozoraManager {
             messageEmbed.setThumbnail(poster.url)
                 .setColor(poster.backgroundColor)
         } else {
-            messageEmbed.setColor('#FF9300')
+            messageEmbed.setColor(appColor)
         }
 
         messageEmbed.addFields(
@@ -812,7 +813,7 @@ class KurozoraManager {
             messageEmbed.setThumbnail(profile.url)
                 .setColor(profile.backgroundColor)
         } else {
-            messageEmbed.setColor('#FF9300')
+            messageEmbed.setColor(appColor)
         }
 
         messageEmbed.addFields({

@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv-expand').expand(require('dotenv').config());
 const axios = require('axios')
 const fs = require('fs')
 const moment = require('moment')
@@ -8,6 +8,7 @@ const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
 const { AnimeManager } = require('./helpers/anime')
 const { KurozoraManager } = require('./helpers/kurozora')
+const { LegalManager } = require('./helpers/legal')
 const { MusicManager } = require('./helpers/music')
 const { PollManager } = require('./helpers/poll')
 const { StreamManager } = require('./helpers/stream')
@@ -20,13 +21,14 @@ const { registerEvents } = require('./events/events')
 const { AnimeGifType } = require('./enums/AnimeGifType')
 
 // MARK: - Properties
-const prefix = 'k!'
+const prefix = process.env['APP_PREFIX']
 const webhookName = 'Kurozora_webhook'
 const token = process.env['TOKEN']
 const appID = process.env['APP_ID']
-var guildID = process.env['GUILD_ID']
-var channelID = '935269731349430352'
-var channel = null
+const guildID = process.env['GUILD_ID']
+const ownerID = process.env['OWNER_ID']
+const channelID = '935269731349430352'
+const channel = null
 
 const commands = []
 const slashCommandFiles = fs.readdirSync('./commands/slashes')
@@ -52,8 +54,9 @@ const rest = new REST({ version: '10' })
 const activityManager = new ActivityManager(client, rest)
 const animeManager = new AnimeManager(client, rest)
 const kurozoraManager = new KurozoraManager(client, rest)
+const legalManager = new LegalManager()
 const musicManager = new MusicManager(client, rest, client.player);
-var pollManager
+let pollManager
 (async () => {
 	const db = await open({
 		filename: './database/main.db',
@@ -306,7 +309,7 @@ async function handleCommand(interaction) {
 				}
 				default:
 					return interaction.reply({
-						content: 'This command is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized. Please notify.',
+						content: `This command is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
 						ephemeral: true
 					})
 			}
@@ -314,9 +317,12 @@ async function handleCommand(interaction) {
 		case 'flip': {
 			return utilsManager.flipCoin(interaction)
 		}
+		case 'privacy': {
+			return await legalManager.privacyPolicy(interaction)
+		}
 		default:
 			return interaction.reply({
-				content: 'This command is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized. Please notify.',
+				content: `This command is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
 				ephemeral: true
 			})
 	}
@@ -350,7 +356,7 @@ async function handleContextMenu(interaction) {
 		}
 		default:
 			return interaction.reply({
-				content: 'This context menu command is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized. Please notify.',
+				content: `This context menu command is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
 				ephemeral: true
 			})
 	}
@@ -395,7 +401,7 @@ async function handleSelectMenu(interaction) {
 		}
 		default:
 			return interaction.reply({
-				content: 'This select menu is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized. Please notify.',
+				content: `This select menu is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
 				ephemeral: true
 			})
 	}
@@ -415,7 +421,7 @@ async function handleButton(interaction) {
 		}
 		default:
 			return interaction.reply({
-				content: 'This button is work in progress, or **<@259790276602626058>** made a typo so it wasn’t recognized. Please notify.',
+				content: `This button is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
 				ephemeral: true
 			})
 	}

@@ -1,6 +1,8 @@
 const { Interaction, ActionRowBuilder, ButtonBuilder, EmbedBuilder, StringSelectMenuBuilder, PermissionFlagsBits, ThreadManager } = require('discord.js')
 const moment = require('moment')
 const { Database } = require('sqlite')
+const appColor = parseInt(process.env['APP_COLOR'].replace('#', ''), 16)
+const ownerID = process.env['OWNER_ID']
 
 class PollManager {
 	// MARK: - Properties
@@ -76,7 +78,7 @@ class PollManager {
 								.addOptions(labelArr),
 						)
 					const embed = new EmbedBuilder()
-						.setColor('#FF9300')
+						.setColor(appColor)
 						.setTitle(embedTitle)
 						.setDescription(embedDescription)
 
@@ -87,7 +89,7 @@ class PollManager {
 						})
 					} catch (err) {
 						return interaction.reply({
-							content: 'Could not vote. Please ping **<@259790276602626058>** for help if the issue keeps occuring.',
+							content: `Could not vote. Please ping **<@${ownerID}>** for help if the issue keeps occurring.`,
 							ephemeral: true,
 						})
 					}
@@ -120,7 +122,7 @@ class PollManager {
 							})
 						} else {
 							const threadEmbed = new EmbedBuilder()
-								.setColor('#FF9300')
+								.setColor(appColor)
 								.setTitle(`Thread Creation Error`)
 								.setDescription(`An error occured while creating the thread for the poll.\n\nPlease add the \`MANAGE_THREADS\` permission to access this feature.`)
 								.setImage('https://support.discord.com/hc/article_attachments/4406694690711/image1.png')
@@ -143,7 +145,7 @@ class PollManager {
 			if (interaction.channel.permissionsFor(interaction.applicationId).has(PermissionFlagsBits.ManageRoles)) {
 				interaction.guild.roles.create({
 					name: roleName,
-					color: '#FF9300',
+					color: appColor,
 					reason: 'Automatically creating "Poll Manager" for bot functions.'
 				}).then(role => {
 					interaction.reply({
@@ -217,7 +219,7 @@ class PollManager {
 				let graph = graphLoop.toString().split(',').join('\r\n')
 
 				const embed = new EmbedBuilder()
-					.setColor('#FF9300')
+					.setColor(appColor)
 					.setTitle(`${interaction.message.embeds[0].title}`)
 					.setDescription(`${interaction.message.embeds[0].description}`)
 					.addFields({
@@ -280,7 +282,7 @@ class PollManager {
 			let graph = graphLoop.toString().split(',').join('\r\n')
 
 			const embed = new EmbedBuilder()
-				.setColor('#FF9300')
+				.setColor(appColor)
 				.setTitle(`${interaction.message.embeds[0].title}`)
 				.setDescription(`${interaction.message.embeds[0].description}`)
 				.addFields({
@@ -344,7 +346,7 @@ class PollManager {
 			let graph = graphLoop.toString().split(',').join('\r\n')
 
 			const embed = new EmbedBuilder()
-				.setColor('#FF9300')
+				.setColor(appColor)
 				.setTitle(`${interaction.message.embeds[0].title}`)
 				.setDescription(`${interaction.message.embeds[0].description}`)
 				.addFields({

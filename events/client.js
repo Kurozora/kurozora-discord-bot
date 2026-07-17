@@ -1,4 +1,5 @@
 const { Client, ActivityType } = require('discord.js')
+const domainName = process.env['DOMAIN_NAME']
 
 /** @param {Client} client - client */
 module.exports.registerClientEvents = (client) => {
@@ -8,7 +9,7 @@ module.exports.registerClientEvents = (client) => {
 	/** Runs one when the bot is online. */
 	client.once('clientReady', c => {
 		console.log(`🚀 [${c.user.tag}] Running...`)
-		client.user.setActivity('kurozora.app', { type: ActivityType.Watching })
+		client.user.setActivity(domainName, { type: ActivityType.Watching })
 	})
 
 	/** Runs when the bot is added to a server. */

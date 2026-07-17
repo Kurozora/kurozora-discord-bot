@@ -7,6 +7,7 @@ const { Player, QueueRepeatMode } = require('discord-player')
 const { YouTubeExtractor } = require('@discord-player/extractor')
 const prism = require('@arno500/prism-media')
 const { pipeline } = require('stream')
+const appColor = parseInt(process.env['APP_COLOR'].replace('#', ''), 16)
 const MusicKit = require('node-musickit-api/promises')
 const musicKit = new MusicKit({
 	key: process.env['AM_DEVELOPER_TOKEN'],
@@ -276,7 +277,7 @@ class MusicManager {
 		const maxTracks = tracks.slice(0, 5)
 		const embed = new EmbedBuilder()
 
-		embed.setColor(0xFF9300)
+		embed.setColor(appColor)
 		embed.setAuthor({
 			name: `${interaction.user.username}`,
 			iconURL: interaction.user.displayAvatarURL({
@@ -552,7 +553,7 @@ class MusicManager {
 				return interaction.reply({
 					embeds: [{
 						description: `🔁 | Looping the **queue**.`,
-						color: 0xFF9300
+						color: appColor
 					}]
 				})
 			} else if (queue.repeatMode === QueueRepeatMode.QUEUE) {
@@ -560,7 +561,7 @@ class MusicManager {
 				return interaction.reply({
 					embeds: [{
 						description: `🔂 | Looping the **current track**.`,
-						color: 0xFF9300
+						color: appColor
 					}]
 				})
 			} else if (queue.repeatMode === QueueRepeatMode.TRACK) {
@@ -568,7 +569,7 @@ class MusicManager {
 				return interaction.reply({
 					embeds: [{
 						description: `✅ | Autoplay is **enabled**.`,
-						color: 0xFF9300
+						color: appColor
 					}]
 				})
 			} else if (queue.repeatMode === QueueRepeatMode.AUTOPLAY) {
@@ -576,7 +577,7 @@ class MusicManager {
 				return interaction.reply({
 					embeds: [{
 						description: `✅ | Loop is **disabled**.`,
-						color: 0xFF9300
+						color: appColor
 					}]
 				})
 			}
@@ -587,7 +588,7 @@ class MusicManager {
 			interaction.reply({
 				embeds: [{
 					description: `✅ | Loop is now disabled.`,
-					color: 0xFF9300
+					color: appColor
 				}]
 			})
 		} else if (loopMode.includes('track')) {
@@ -595,7 +596,7 @@ class MusicManager {
 			return interaction.reply({
 				embeds: [{
 					description: `🔂 | Looping the current track.`,
-					color: 0xFF9300
+					color: appColor
 				}]
 			})
 		} else if (loopMode.includes('queue')) {
@@ -603,7 +604,7 @@ class MusicManager {
 			return interaction.reply({
 				embeds: [{
 					description: `🔁 | Looping the queue.`,
-					color: 0xFF9300
+					color: appColor
 				}]
 			})
 		} else if (loopMode.includes('autoplay')) {
@@ -611,12 +612,12 @@ class MusicManager {
 			return interaction.reply({
 				embeds: [{
 					description: `▶️ | Autoplay has been enabled.`,
-					color: 0xFF9300
+					color: appColor
 				}]
 			})
 		} else if (loopMode.includes('status')) {
 			const embed = new EmbedBuilder()
-			embed.setColor(0xFF9300)
+			embed.setColor(appColor)
 
 			let mode
 			if (queue.repeatMode === QueueRepeatMode.OFF) {
@@ -699,7 +700,7 @@ class MusicManager {
 		const volumeLevel = interaction.options.getInteger('level')
 		if (!volumeLevel) {
 			const embed = new EmbedBuilder()
-			embed.setColor(0xFF9300)
+			embed.setColor(appColor)
 			embed.setDescription(`The volume is set on 🔊 ${queue.node.volume} \n*↳ Please enter between **1** and **${maxVolume}** to change the volume.*`)
 			return interaction.reply({
 				embeds: [embed],
@@ -710,7 +711,7 @@ class MusicManager {
 		// Check if the volume has already been set to the requested level
 		if (queue.node.volume === volumeLevel) {
 			const embed = new EmbedBuilder()
-			embed.setColor(0xFF9300)
+			embed.setColor(appColor)
 			embed.setDescription(`The volume you want to change is the same as the current one. \n*↳ Please try again with a different number.*`)
 			return interaction.reply({
 				embeds: [embed]
@@ -720,7 +721,7 @@ class MusicManager {
 		// Check if the requested level is valid
 		if (volumeLevel < 0 || volumeLevel > maxVolume) {
 			const embed = new EmbedBuilder()
-			embed.setColor(0xFF9300)
+			embed.setColor(appColor)
 			embed.setDescription(`The specified number is not valid. \n*↳ Please enter between **1** and **${maxVolume}** to change the volume.*`)
 			return interaction.reply({
 				embeds: [embed]
@@ -732,7 +733,7 @@ class MusicManager {
 		return interaction.reply({
 			embeds: [{
 				description: success ? `✅ Volume set to ${volumeLevel}` : '❌ | Something went wrong',
-				color: 0xFF9300
+				color: appColor
 			}]
 		})
 	}
@@ -757,7 +758,7 @@ class MusicManager {
 		}
 
 		const embed = new EmbedBuilder()
-		embed.setColor(0xFF9300)
+		embed.setColor(appColor)
 		embed.setThumbnail(interaction.guild.iconURL({
 			size: 2048,
 			dynamic: true
