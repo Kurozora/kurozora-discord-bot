@@ -41,6 +41,7 @@ Full feature-list:
 - Create stream links
 - Create anime polls
 - Clear URLs from tracking parameters [^1]
+- Post videos and GIFs from Twitter/X links
 
 [^1]: works only on the Kurozora server. Support can be extended if there's interest.
 
@@ -117,6 +118,15 @@ For KuroBot to connect to your server, you will need to register it with Discord
 3. Select `Copy Server ID`
 4. Open the `.env` file
 5. Paste the copied ID as the `GUILD_ID` key's value
+
+### Twitter/X Cookies
+
+This step is optional. X only serves age restricted posts to signed-in accounts, so KuroBot needs cookies to fetch their videos.
+
+1. Export the cookies of your X account to a Netscape cookie file
+2. Copy the path of the file
+3. Open the `.env` file
+4. Paste the copied path as the `X_COOKIES_FILE` key's value
 
 ## Run
 

@@ -12,6 +12,7 @@ const { LegalManager } = require('./helpers/legal')
 const { MusicManager, musicComponentPrefix } = require('./helpers/music')
 const { PollManager } = require('./helpers/poll')
 const { StreamManager } = require('./helpers/stream')
+const { TwitterManager } = require('./helpers/twitter')
 const { UtilsManager } = require('./helpers/utils')
 const { LinkCleaner } = require('./helpers/link_cleaner')
 const { open } = require('sqlite')
@@ -64,6 +65,7 @@ let pollManager
 	pollManager = new PollManager(client, db)
 })()
 const streamManager = new StreamManager(client, rest)
+const twitterManager = new TwitterManager()
 const utilsManager = new UtilsManager(client, rest)
 const linkCleaner = new LinkCleaner()
 
@@ -315,6 +317,21 @@ async function handleCommand(interaction) {
 					})
 			}
 		}
+		case 'twitter': {
+			let command = interaction.options.getSubcommand()
+
+			switch (command) {
+				case 'video': {
+					let link = interaction.options.getString('link')
+					return await twitterManager.post(interaction, link)
+				}
+				default:
+					return interaction.reply({
+						content: `This command is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
+						flags: MessageFlags.Ephemeral
+					})
+			}
+		}
 		case 'flip': {
 			return utilsManager.flipCoin(interaction)
 		}
@@ -374,6 +391,9 @@ async function handleContextMenu(interaction) {
 		}
 		case 'Search Studio': {
 			return await searchTypeInKurozora(interaction, 'studios')
+		}
+		case 'Post Video': {
+			return await twitterManager.postFrom(interaction, interaction.targetMessage)
 		}
 		default:
 			return interaction.reply({
@@ -468,8 +488,8 @@ async function handleButton(interaction) {
  */
 async function getCat() {
 	const response = await axios.get('https://api.thecatapi.com/v1/images/search')
-			.then(response => response.data)
-			.catch(error => console.error(error))
+		.then(response => response.data)
+		.catch(error => console.error(error))
 
 	if (typeof response[0] === 'undefined') {
 		return getCat()
