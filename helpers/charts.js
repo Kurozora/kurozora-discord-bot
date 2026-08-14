@@ -22,12 +22,13 @@ const defaultFormat = value => value.toLocaleString('en-US')
  * @param {number} value - value
  * @param {number} highest - highest
  * @param {number} [width] - width
+ * @param {string} [track] - track
  *
  * @returns {string}
  */
-function bar(value, highest, width = defaultWidth) {
+function bar(value, highest, width = defaultWidth, track = trackCell) {
 	if (!(value > 0) || !(highest > 0)) {
-		return trackCell.repeat(width)
+		return track.repeat(width)
 	}
 
 	const cells = Math.min(width, (value / highest) * width)
@@ -35,7 +36,7 @@ function bar(value, highest, width = defaultWidth) {
 	const remainder = cells - filled
 	const partial = remainder > 0 ? fillBlocks[Math.ceil(remainder * fillBlocks.length) - 1] : ''
 
-	return `${'█'.repeat(filled)}${partial}`.padEnd(width, trackCell)
+	return `${'█'.repeat(filled)}${partial}`.padEnd(width, track)
 }
 
 /**
@@ -104,8 +105,7 @@ function trend(values, options = {}) {
 }
 
 /**
- * The text a chart draws a label as, cut to a length and stripped of everything
- * a code block reads as markup.
+ * The text a label is drawn as, cut to a length and stripped of markup.
  *
  * @param {string} text - text
  * @param {number} [length] - length

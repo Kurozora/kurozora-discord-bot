@@ -12,7 +12,7 @@ const { GifManager, gifButtonPrefix } = require('./helpers/gif')
 const { KurozoraManager } = require('./helpers/kurozora')
 const { LegalManager } = require('./helpers/legal')
 const { MusicManager, musicComponentPrefix } = require('./helpers/music')
-const { PollManager } = require('./helpers/poll')
+const { PollManager, pollComponentPrefix } = require('./helpers/poll')
 const { StatsManager } = require('./helpers/stats')
 const { StreamManager } = require('./helpers/stream')
 const { TwitterManager } = require('./helpers/twitter')
@@ -70,6 +70,8 @@ let statsManager
 
 	await Promise.all([
 		appStoreManager.start()
+			.catch(error => console.error(error)),
+		pollManager.start()
 			.catch(error => console.error(error)),
 		statsManager.start()
 			.catch(error => console.error(error))
@@ -199,6 +201,8 @@ client.on('interactionCreate', async interaction => {
 		return await handleSelectMenu(interaction)
 	} else if (interaction.isButton()) {
 		return await handleButton(interaction)
+	} else if (interaction.isModalSubmit()) {
+		return await handleModal(interaction)
 	}
 })
 
@@ -461,17 +465,15 @@ async function handleSelectMenu(interaction) {
 		return await musicManager.handleComponent(interaction)
 	}
 
-	switch (interaction.customId) {
-		case 'poll': {
-			return await pollManager.update(interaction)
-				.catch(error => console.error(error))
-		}
-		default:
-			return interaction.reply({
-				content: `This select menu is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
-				flags: MessageFlags.Ephemeral
-			})
+	if (interaction.customId.startsWith(pollComponentPrefix)) {
+		return await pollManager.handleComponent(interaction)
+			.catch(error => console.error(error))
 	}
+
+	return interaction.reply({
+		content: `This select menu is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
+		flags: MessageFlags.Ephemeral
+	})
 }
 
 /**
@@ -489,17 +491,33 @@ async function handleButton(interaction) {
 		return await musicManager.handleComponent(interaction)
 	}
 
-	switch (interaction.customId) {
-		case 'close_poll': {
-			return await pollManager.close(interaction)
-				.catch(error => console.error(error))
-		}
-		default:
-			return interaction.reply({
-				content: `This button is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
-				flags: MessageFlags.Ephemeral
-			})
+	if (interaction.customId.startsWith(pollComponentPrefix)) {
+		return await pollManager.handleComponent(interaction)
+			.catch(error => console.error(error))
 	}
+
+	return interaction.reply({
+		content: `This button is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
+		flags: MessageFlags.Ephemeral
+	})
+}
+
+/**
+ * Handles the submitted modal.
+ *
+ * @param interaction - interaction
+ * @returns {Promise<void>}
+ */
+async function handleModal(interaction) {
+	if (interaction.customId === `${pollComponentPrefix}_create`) {
+		return await pollManager.compose(interaction)
+			.catch(error => console.error(error))
+	}
+
+	return interaction.reply({
+		content: `This form is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
+		flags: MessageFlags.Ephemeral
+	})
 }
 
 /**
