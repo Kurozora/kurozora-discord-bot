@@ -6,7 +6,7 @@
     <sup><em>Unlimited access to a growing collection of over 90,000 anime, manga, music, games, and more!</em></sup>
 </p>
 
-# Kurozora Discord Bot (KuroBot) [![NodeJS](https://img.shields.io/badge/NodeJS%2020.x-green.svg?style=flat&logo=nodedotjs&logoColor=white&color=339933)](https://nodejs.org) [![Kurozora Discord Server](https://img.shields.io/discord/449250093623934977?style=flat&label=&logo=Discord&logoColor=white&color=7289DA)](https://discord.gg/f3QFzGqsah) [![License](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat)](LICENSE)
+# Kurozora Discord Bot (KuroBot) [![NodeJS](https://img.shields.io/badge/NodeJS%2024.x-green.svg?style=flat&logo=nodedotjs&logoColor=white&color=339933)](https://nodejs.org) [![Kurozora Discord Server](https://img.shields.io/discord/449250093623934977?style=flat&label=&logo=Discord&logoColor=white&color=7289DA)](https://discord.gg/f3QFzGqsah) [![License](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat)](LICENSE)
 
 [Kurozora](https://kurozora.app) is your one-stop shop for everything anime!
 With KuroBot, you can easily search for anime, manga, games, music, characters, people, and studios from the biggest anime library in the world—Kurozora.
@@ -62,7 +62,7 @@ You can invite Kurozora Bot to your server from the [App Directory](https://disc
 
 ## Prerequisite
 
-1. [NodeJS 20.x](https://nodejs.org)
+1. [NodeJS 24.x](https://nodejs.org)
 2. [Python 3.x](https://python.org)
 3. [PM2](https://pm2.keymetrics.io) (optional)
 

@@ -7,6 +7,7 @@ const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
 const { AppStoreManager } = require('./helpers/app_store')
+const { Database } = require('./helpers/database')
 const { GifManager, gifButtonPrefix } = require('./helpers/gif')
 const { KurozoraManager } = require('./helpers/kurozora')
 const { LegalManager } = require('./helpers/legal')
@@ -16,8 +17,6 @@ const { StreamManager } = require('./helpers/stream')
 const { TwitterManager } = require('./helpers/twitter')
 const { UtilsManager } = require('./helpers/utils')
 const { LinkCleaner } = require('./helpers/link_cleaner')
-const { open } = require('sqlite')
-const sqlite3 = require('sqlite3').verbose()
 const { Player } = require('discord-player');
 const { registerEvents } = require('./events/events')
 
@@ -62,10 +61,7 @@ let appStoreManager
 (async () => {
 	fs.mkdirSync('./database', { recursive: true })
 
-	const db = await open({
-		filename: './database/main.db',
-		driver: sqlite3.Database
-	})
+	const db = new Database('./database/main.db')
 	pollManager = new PollManager(client, db)
 	appStoreManager = new AppStoreManager(client, db)
 

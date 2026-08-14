@@ -1,6 +1,6 @@
 const { Interaction, ActionRowBuilder, ButtonBuilder, EmbedBuilder, MessageFlags, StringSelectMenuBuilder, PermissionFlagsBits, ThreadManager } = require('discord.js')
 const moment = require('moment')
-const { Database } = require('sqlite')
+const { Database } = require('./database')
 const appColor = parseInt(process.env['APP_COLOR'].replace('#', ''), 16)
 const ownerID = process.env['OWNER_ID']
 
@@ -175,7 +175,7 @@ class PollManager {
 		let date = moment()
 		let publicPoll = Object.values(await this.db.get(`SELECT EXISTS(SELECT publicPoll
 																	   FROM "poll-${interaction.message.id}"
-																	   WHERE publicPoll = "true" LIMIT 1);`))
+																	   WHERE publicPoll = 'true' LIMIT 1);`))
 
 		// Checking if users contains the userId of current voter.
 		if (sql[0]) {

@@ -24,6 +24,9 @@
   ],
   "author": "Kirito",
   "license": "GPLv3",
+  "engines": {
+    "node": ">=24"
+  },
   "dependencies": {
     "@discord-player/extractor": "^7.2.0",
     "@discordjs/builders": "^1.14.1",
@@ -39,12 +42,9 @@
     "ffmpeg-static": "^5.3.0",
     "mediaplex": "^1.0.0",
     "moment": "^2.30.1",
-    "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7",
     "youtube-dl-exec": "^3.1.12"
   },
   "allowScripts": {
-    "sqlite3@5.1.7": true,
     "ffmpeg-static@5.3.0": true,
     "youtube-dl-exec@3.1.12": true
   }
