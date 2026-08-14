@@ -25,24 +25,27 @@
   "author": "Kirito",
   "license": "GPLv3",
   "dependencies": {
-    "@arno500/prism-media": "^2.0.0-alpha.1",
-    "@discord-player/extractor": "^4.5.1",
-    "@discordjs/opus": "^0.9.0",
-    "@discordjs/voice": "^0.17.0",
-    "@mapbox/node-pre-gyp": "^1.0.11",
-    "@yujinakayama/apple-music": "^0.4.1",
-    "axios": "^1.7.5",
-    "discord-player": "^6.7.1",
-    "discord.js": "^14.15.3",
-    "dotenv": "^16.4.5",
+    "@discord-player/extractor": "^7.2.0",
+    "@discordjs/builders": "^1.14.1",
+    "@discordjs/rest": "^2.6.3",
+    "@snazzah/davey": "^0.1.12",
+    "axios": "^1.19.0",
+    "discord-api-types": "^0.38.53",
+    "discord-player": "^7.2.0",
+    "discord-player-youtubei": "^2.0.0",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
     "dotenv-expand": "^1000.0.0",
-    "ffmpeg-static": "^5.2.0",
-    "libsodium-wrappers": "^0.7.15",
+    "ffmpeg-static": "^5.3.0",
+    "mediaplex": "^1.0.0",
     "moment": "^2.30.1",
-    "node-musickit-api": "^2.1.1",
-    "play-dl": "^1.9.7",
-    "qs": "^6.13.0",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "youtube-dl-exec": "^3.1.12"
+  },
+  "allowScripts": {
+    "sqlite3@5.1.7": true,
+    "ffmpeg-static@5.3.0": true,
+    "youtube-dl-exec@3.1.12": true
   }
 }

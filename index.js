@@ -9,7 +9,7 @@ const { ActivityManager } = require('./helpers/activities')
 const { GifManager, gifButtonPrefix } = require('./helpers/gif')
 const { KurozoraManager } = require('./helpers/kurozora')
 const { LegalManager } = require('./helpers/legal')
-const { MusicManager } = require('./helpers/music')
+const { MusicManager, musicComponentPrefix } = require('./helpers/music')
 const { PollManager } = require('./helpers/poll')
 const { StreamManager } = require('./helpers/stream')
 const { UtilsManager } = require('./helpers/utils')
@@ -340,6 +340,9 @@ async function handleAutocomplete(interaction) {
 		case 'gif': {
 			return await gifManager.autocomplete(interaction)
 		}
+		case 'music': {
+			return await musicManager.autocomplete(interaction)
+		}
 		default:
 			return interaction.respond([])
 				.catch(error => console.error(error))
@@ -415,6 +418,10 @@ async function searchTypeInKurozora(interaction, type) {
  * @returns {Promise<void>}
  */
 async function handleSelectMenu(interaction) {
+	if (interaction.customId.startsWith(musicComponentPrefix)) {
+		return await musicManager.handleComponent(interaction)
+	}
+
 	switch (interaction.customId) {
 		case 'poll': {
 			return await pollManager.update(interaction)
@@ -437,6 +444,10 @@ async function handleSelectMenu(interaction) {
 async function handleButton(interaction) {
 	if (interaction.customId.startsWith(gifButtonPrefix)) {
 		return
+	}
+
+	if (interaction.customId.startsWith(musicComponentPrefix)) {
+		return await musicManager.handleComponent(interaction)
 	}
 
 	switch (interaction.customId) {

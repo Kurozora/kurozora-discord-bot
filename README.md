@@ -22,7 +22,7 @@ Full feature-list:
     - manga
     - game
     - music
-        - YouTube, Spotify and Apple Music results combined
+        - YouTube, Apple Music, Spotify, Deezer, and Tidal results combined
     - characters
     - people
     - studios
@@ -117,31 +117,6 @@ For KuroBot to connect to your server, you will need to register it with Discord
 3. Select `Copy Server ID`
 4. Open the `.env` file
 5. Paste the copied ID as the `GUILD_ID` key's value
-
-### Apple Music
-
-When using the `/music search` command, Kurozora uses the Apple Music API to find songs on Apple Music. To get the necessary secrets for this feature to work, you need to be registered as an [Apple Developer](https://developer.apple.com).
-
-After that, you need to generate a developer token. You can follow the steps on the [Apple Music documentation page](https://developer.apple.com/documentation/applemusicapi/generating_developer_tokens) to do so. Alternatively you can use tools such as [apple-music-token-generator](https://github.com/pelauimagineering/apple-music-token-generator) to make life easier.
-
-Once the developer token is generated:
-
-1. Open the `.env` file
-2. Paste the copied token as the `AM_DEVELOPER_TOKEN` key's value
-3. Add your team ID as the `AM_TEAM_ID` key's value
-4. Add your key ID as the `AM_KEY_ID` key's value
-
-### Spotify
-
-Similar to Apple Music, the Spotify API is used for finding songs on Spotify. To get this to work, you need to be registered as a [Spotify Developer](https://developer.spotify.com).
-
-After that you need to create an app to get the required ID and secret. You can follow the steps on the [Spotify documentation page](https://developer.spotify.com/documentation/web-api/tutorials/getting-started).
-
-Once the credentials are generated:
-
-1. Open the `.env` file
-2. Paste the copied client ID as the `SPOTIFY_CLIENT_ID` key's value
-3. Paste the copied client secret as the `SPOTIFY_CLIENT_SECRET` key's value
 
 ## Run
 

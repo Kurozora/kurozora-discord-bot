@@ -9,8 +9,9 @@ const data = new SlashCommandBuilder()
 			.setDescription('Queue an audio for playback.')
 			.addStringOption(option =>
 				option.setName('target')
-					.setDescription('The URL, ID or name of the video.')
+					.setDescription('The title, or title and artist, of the song. A URL also works.')
 					.setRequired(true)
+					.setAutocomplete(true)
 			)
 	)
 	.addSubcommand(subcommand =>
@@ -19,8 +20,9 @@ const data = new SlashCommandBuilder()
 			.setDescription('Search for a track without adding to playback queue.')
 			.addStringOption(option =>
 				option.setName('target')
-					.setDescription('The URL, ID or name of the video.')
+					.setDescription('The title, or title and artist, of the song. A URL also works.')
 					.setRequired(true)
+					.setAutocomplete(true)
 			)
 	)
 	.addSubcommand(subcommand =>
