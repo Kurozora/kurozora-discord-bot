@@ -6,6 +6,7 @@ const { Client, GatewayIntentBits, MessageFlags, Partials, PermissionsBitField, 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
+const { AppStoreManager } = require('./helpers/app_store')
 const { GifManager, gifButtonPrefix } = require('./helpers/gif')
 const { KurozoraManager } = require('./helpers/kurozora')
 const { LegalManager } = require('./helpers/legal')
@@ -57,12 +58,19 @@ const gifManager = new GifManager(client, rest, kurozoraManager)
 const legalManager = new LegalManager()
 const musicManager = new MusicManager(client, rest, client.player);
 let pollManager
+let appStoreManager
 (async () => {
+	fs.mkdirSync('./database', { recursive: true })
+
 	const db = await open({
 		filename: './database/main.db',
 		driver: sqlite3.Database
 	})
 	pollManager = new PollManager(client, db)
+	appStoreManager = new AppStoreManager(client, db)
+
+	await appStoreManager.start()
+		.catch(error => console.error(error))
 })()
 const streamManager = new StreamManager(client, rest)
 const twitterManager = new TwitterManager()

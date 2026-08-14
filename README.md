@@ -42,6 +42,7 @@ Full feature-list:
 - Create anime polls
 - Clear URLs from tracking parameters [^1]
 - Post videos and GIFs from Twitter/X links
+- Post new App Store reviews
 
 [^1]: works only on the Kurozora server. Support can be extended if there's interest.
 
@@ -119,14 +120,38 @@ For KuroBot to connect to your server, you will need to register it with Discord
 4. Open the `.env` file
 5. Paste the copied ID as the `GUILD_ID` key's value
 
-### Twitter/X Cookies
+### Twitter/X Cookies (optional)
 
-This step is optional. X only serves age restricted posts to signed-in accounts, so KuroBot needs cookies to fetch their videos.
+Twitter/X only serves age-restricted posts to signed-in accounts, so KuroBot needs cookies to fetch the videos.
 
-1. Export the cookies of your X account to a Netscape cookie file
+1. Export the cookies of your Twitter/X account to a cookie file
 2. Copy the path of the file
 3. Open the `.env` file
 4. Paste the copied path as the `X_COOKIES_FILE` key's value
+
+### App Store Reviews (optional)
+
+KuroBot posts new App Store reviews of your app to a channel of your choosing in your server.
+
+1. Navigate to your app's App Store page
+2. Copy the digits following `id` in the address, such as `1476153872`
+3. Open the `.env` file
+4. Paste the copied digits as the `APP_STORE_APP_ID` key's value
+
+The channel the reviews are posted in must be in the server set as `GUILD_ID`. You will need Developer Mode turned on for the channel ID option to be visible.
+
+1. Navigate to the Discord website or app
+2. Right-click on the channel
+3. Select `Copy Channel ID`
+4. Open the `.env` file
+5. Paste the copied ID as the `APP_STORE_REVIEWS_CHANNEL_ID` key's value
+
+Deny `Send Messages` and allow `Add Reactions` for `@everyone` on the channel to let members react to a review without replying to it. KuroBot needs `Send Messages` and `Embed Links`.
+
+> [!NOTE]
+> Reviews written before the first run are skipped. Set `APP_STORE_BACKFILL_LIMIT` to post that many of the newest ones instead.
+> 
+> If your app is available in specific storefronts, set `APP_STORE_STOREFRONTS` to the country codes of those storefronts, such as `us,nl,jp`.
 
 ## Run
 
