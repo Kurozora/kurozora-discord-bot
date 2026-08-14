@@ -97,11 +97,11 @@ class PollManager {
 					// ----------------------------------------------------------------
 					const message = await interaction.fetchReply()
 
-					await this.db.exec(`CREATE TABLE "poll-${message.id}" ("lastInteraction" TEXT, "commandInput" TEXT, "guildName" TEXT, "guildId" INTEGER, "channelName" TEXT, "channelId" INTEGER, "pollTitle" TEXT, "pollDesc" TEXT, "pollItem" TEXT, "voteCount" INTEGER, "publicPoll" TEXT)`)
-					await this.db.exec(`CREATE TABLE "user-${message.id}" ("userName" TEXT, "userId" INTEGER, "pollItem" TEXT)`)
+					await this.db.exec(`CREATE TABLE "poll-${message.id}" ("lastInteraction" TEXT, "commandInput" TEXT, "guildName" TEXT, "guildId" TEXT, "channelName" TEXT, "channelId" TEXT, "pollTitle" TEXT, "pollDesc" TEXT, "pollItem" TEXT, "voteCount" INTEGER, "publicPoll" TEXT)`)
+					await this.db.exec(`CREATE TABLE "user-${message.id}" ("userName" TEXT, "userId" TEXT, "pollItem" TEXT)`)
 
 					let date = moment()
-					let placeholders = pollOptionsArr.map((movie) => `(${interaction.guild.id}, ${interaction.channel.id}, ?, 0)`).join(',')
+					let placeholders = pollOptionsArr.map((movie) => `('${interaction.guild.id}', '${interaction.channel.id}', ?, 0)`).join(',')
 					let sql = `INSERT INTO "poll-${message.id}"(guildId, channelId, pollItem, voteCount) VALUES ${placeholders}`
 					let sql2 = `UPDATE "poll-${message.id}" SET lastInteraction = ?, commandInput = ?, guildName = ?, channelName = ?, pollTitle = ?, pollDesc = ?, publicPoll = ?`
 
