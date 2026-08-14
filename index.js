@@ -13,6 +13,7 @@ const { KurozoraManager } = require('./helpers/kurozora')
 const { LegalManager } = require('./helpers/legal')
 const { MusicManager, musicComponentPrefix } = require('./helpers/music')
 const { PollManager } = require('./helpers/poll')
+const { StatsManager } = require('./helpers/stats')
 const { StreamManager } = require('./helpers/stream')
 const { TwitterManager } = require('./helpers/twitter')
 const { UtilsManager } = require('./helpers/utils')
@@ -58,15 +59,21 @@ const legalManager = new LegalManager()
 const musicManager = new MusicManager(client, rest, client.player);
 let pollManager
 let appStoreManager
+let statsManager
 (async () => {
 	fs.mkdirSync('./database', { recursive: true })
 
 	const db = new Database('./database/main.db')
 	pollManager = new PollManager(client, db)
 	appStoreManager = new AppStoreManager(client, db)
+	statsManager = new StatsManager(client, db)
 
-	await appStoreManager.start()
-		.catch(error => console.error(error))
+	await Promise.all([
+		appStoreManager.start()
+			.catch(error => console.error(error)),
+		statsManager.start()
+			.catch(error => console.error(error))
+	])
 })()
 const streamManager = new StreamManager(client, rest)
 const twitterManager = new TwitterManager()
@@ -181,8 +188,12 @@ client.on('interactionCreate', async interaction => {
 	if (interaction.isAutocomplete()) {
 		return await handleAutocomplete(interaction)
 	} else if (interaction.isContextMenuCommand()) {
+		statsManager?.record(interaction)
+			.catch(error => console.error(error))
 		return await handleContextMenu(interaction)
 	} else if (interaction.isCommand()) {
+		statsManager?.record(interaction)
+			.catch(error => console.error(error))
 		return await handleCommand(interaction)
 	} else if (interaction.isStringSelectMenu()) {
 		return await handleSelectMenu(interaction)
@@ -341,6 +352,10 @@ async function handleCommand(interaction) {
 		}
 		case 'privacy': {
 			return await legalManager.privacyPolicy(interaction)
+		}
+		case 'stats': {
+			return await statsManager.report(interaction)
+				.catch(error => console.error(error))
 		}
 		default:
 			return interaction.reply({
