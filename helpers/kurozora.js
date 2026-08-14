@@ -100,8 +100,7 @@ class KurozoraManager {
 
             if (!value || value <= 0 || value > data.length) {
                 return collector.channel.send({
-                    content: `❌ | Invalid response, try a value between **1** and **${data.length}** or **cancel**`,
-                    ephemeral: true
+                    content: `❌ | Invalid response, try a value between **1** and **${data.length}** or **cancel**`
                 })
             }
 
@@ -122,7 +121,6 @@ class KurozoraManager {
             if (reason === 'time') {
                 return collector.channel.send({
                     content: `❌ | Search timed out...`,
-                    ephemeral: true,
                     allowedMentions: {
                         parse: [],
                         repliedUser: false

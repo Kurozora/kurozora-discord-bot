@@ -1,6 +1,6 @@
 const axios = require('axios')
 const qs = require('qs')
-const { Client, Interaction, EmbedBuilder, VoiceChannel } = require('discord.js')
+const { Client, Interaction, EmbedBuilder, MessageFlags, VoiceChannel } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { VoiceConnection } = require('@discordjs/voice')
 const { Player, QueueRepeatMode } = require('discord-player')
@@ -198,7 +198,7 @@ class MusicManager {
 		if (!queue || !queue.node.isPlaying()) {
 			interaction.reply({
 				content: '❌ | Playback queue is empty',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(e => console.error(e))
 
 			return true
@@ -270,7 +270,7 @@ class MusicManager {
 		if (!tracks || !tracks.length) {
 			return interaction.reply({
 				content: `❌ | Track **${searchQuery}** not found on YouTube, or YouTube changed their code again and the library we rely on hasn't been updated to support the new changes yet.`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(e => console.error(e))
 		}
 
@@ -311,8 +311,7 @@ class MusicManager {
 
 			if (!value || value <= 0 || value > maxTracks.length) {
 				return collector.channel.send({
-					content: `❌ | Invalid response, try a value between **1** and **${maxTracks.length}** or **cancel**`,
-					ephemeral: true
+					content: `❌ | Invalid response, try a value between **1** and **${maxTracks.length}** or **cancel**`
 				})
 			}
 
@@ -362,7 +361,6 @@ class MusicManager {
 			if (reason === 'time') {
 				return collector.channel.send({
 					content: `❌ | Search timed out...`,
-					ephemeral: true,
 					allowedMentions: {
 						parse: [],
 						repliedUser: false
@@ -399,7 +397,7 @@ class MusicManager {
 			queue.delete()
 			return interaction.reply({
 				content: '❌ | Could not join the voice channel.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(e => console.error(e))
 		}
 
@@ -413,13 +411,13 @@ class MusicManager {
 		if (!track) {
 			return interaction.reply({
 				content: `❌ | Track **${searchQuery}** not found!`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(e => console.error(e))
 		}
 
 		await interaction.reply({
 			content: `⏱️ | Loading **${track.title}** track!`,
-			ephemeral: true
+			flags: MessageFlags.Ephemeral
 		}).catch(e => console.error(e))
 
 		return queue.node.play(track)
@@ -497,7 +495,7 @@ class MusicManager {
 		if (!queue.history.previousTrack) {
 			return interaction.reply({
 				content: '❌ | A previous music doesn’t exist.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(e => console.error(e))
 		}
 
@@ -523,7 +521,7 @@ class MusicManager {
 		if (!queue.tracks.toArray()[0]) {
 			return interaction.reply({
 				content: '❌ | There are no other songs to play.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(e => console.error(e))
 		}
 
@@ -653,7 +651,7 @@ class MusicManager {
 		if (!queue.tracks.toArray()[0]) {
 			return interaction.reply({
 				content: '❌ | The queue is already empty.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(e => console.error(e))
 		}
 
@@ -704,7 +702,7 @@ class MusicManager {
 			embed.setDescription(`The volume is set on 🔊 ${queue.node.volume} \n*↳ Please enter between **1** and **${maxVolume}** to change the volume.*`)
 			return interaction.reply({
 				embeds: [embed],
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			})
 		}
 
@@ -753,7 +751,7 @@ class MusicManager {
 		if (!queue.tracks.toArray()[0]) {
 			return interaction.reply({
 				content: `❌ | Queue is empty.`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(e => console.error(e))
 		}
 

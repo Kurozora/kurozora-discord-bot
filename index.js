@@ -2,7 +2,7 @@ require('dotenv-expand').expand(require('dotenv').config());
 const axios = require('axios')
 const fs = require('fs')
 const moment = require('moment')
-const { Client, GatewayIntentBits, Partials, PermissionsBitField, MessageEmbed } = require('discord.js')
+const { Client, GatewayIntentBits, MessageFlags, Partials, PermissionsBitField, MessageEmbed } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
@@ -249,7 +249,7 @@ async function handleCommand(interaction) {
 			if (!voiceChannel) {
 				return interaction.reply({
 					content: '❌ | Connect to a voice channel first.',
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				})
 			}
 
@@ -311,7 +311,7 @@ async function handleCommand(interaction) {
 				default:
 					return interaction.reply({
 						content: `This command is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
-						ephemeral: true
+						flags: MessageFlags.Ephemeral
 					})
 			}
 		}
@@ -324,7 +324,7 @@ async function handleCommand(interaction) {
 		default:
 			return interaction.reply({
 				content: `This command is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			})
 	}
 }
@@ -375,7 +375,7 @@ async function handleContextMenu(interaction) {
 		default:
 			return interaction.reply({
 				content: `This context menu command is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			})
 	}
 }
@@ -398,9 +398,12 @@ async function searchTypeInKurozora(interaction, type) {
 		let query = matches[0][2]
 		return await kurozoraManager.search(interaction, type, query)
 	} else {
-		return interaction.channel.send({
+		await interaction.deleteReply()
+			.catch(error => console.error(error))
+
+		return interaction.followUp({
 			content: 'No anime title found. Please make sure to surround the title with a delimiter such as: `title`, [[title]] or ((title))',
-			ephemeral: true
+			flags: MessageFlags.Ephemeral
 		})
 	}
 }
@@ -420,7 +423,7 @@ async function handleSelectMenu(interaction) {
 		default:
 			return interaction.reply({
 				content: `This select menu is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			})
 	}
 }
@@ -444,7 +447,7 @@ async function handleButton(interaction) {
 		default:
 			return interaction.reply({
 				content: `This button is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			})
 	}
 }
@@ -492,7 +495,7 @@ function confirmConnectedToVC(voiceChannel, interaction) {
 	if (!voiceChannel) {
 		interaction.reply({
 			content: '❌ | Connect to a voice channel first.',
-			ephemeral: true
+			flags: MessageFlags.Ephemeral
 		}).catch(e => console.error(e))
 		return false
 	}

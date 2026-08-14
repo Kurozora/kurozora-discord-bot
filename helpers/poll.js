@@ -1,4 +1,4 @@
-const { Interaction, ActionRowBuilder, ButtonBuilder, EmbedBuilder, StringSelectMenuBuilder, PermissionFlagsBits, ThreadManager } = require('discord.js')
+const { Interaction, ActionRowBuilder, ButtonBuilder, EmbedBuilder, MessageFlags, StringSelectMenuBuilder, PermissionFlagsBits, ThreadManager } = require('discord.js')
 const moment = require('moment')
 const { Database } = require('sqlite')
 const appColor = parseInt(process.env['APP_COLOR'].replace('#', ''), 16)
@@ -67,7 +67,7 @@ class PollManager {
 				if (pollOptionsArr.length > 25) {
 					interaction.reply({
 						content: `Sorry! The poll you tried to create has more than 25 items(${pollOptionsArr.length}) unfortunately this is a Discord limitation, please remove some options from the poll.`,
-						ephemeral: true,
+						flags: MessageFlags.Ephemeral,
 					}).catch(error => console.error(error))
 				} else {
 					const selectionMenu = new ActionRowBuilder()
@@ -90,7 +90,7 @@ class PollManager {
 					} catch (err) {
 						return interaction.reply({
 							content: `Could not vote. Please ping **<@${ownerID}>** for help if the issue keeps occurring.`,
-							ephemeral: true,
+							flags: MessageFlags.Ephemeral,
 						})
 					}
 
@@ -130,7 +130,7 @@ class PollManager {
 
 							await interaction.followUp({
 								embeds: [threadEmbed],
-								ephemeral: true,
+								flags: MessageFlags.Ephemeral,
 							})
 						}
 					}
@@ -138,7 +138,7 @@ class PollManager {
 			} else {
 				interaction.reply({
 					content: 'Sorry you don’t have the "Poll Manager" role.',
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				}).catch(error => console.error(error))
 			}
 		} else {
@@ -150,13 +150,13 @@ class PollManager {
 				}).then(role => {
 					interaction.reply({
 						content: 'It appears you don’t have permission to create polls.\nPlease ask an admin/mod to run the \`/poll\` command for you.',
-						ephemeral: true,
+						flags: MessageFlags.Ephemeral,
 					}).catch(error => console.error(error))
 				})
 			} else {
 				interaction.reply({
 					content: `It appears you don’t have permission to create polls.\nPlease ask an admin/mod to run the \`/poll\` command for you.`,
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				}).catch(error => console.error(error))
 			}
 		}
@@ -238,15 +238,13 @@ class PollManager {
 
 				return await interaction.followUp({
 					content: `Your vote has changed from "${originalChoice}" to "${choice}".`,
-					fetchReply: true,
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				}).catch(error => console.error(error))
 			}
 
 			return await interaction.reply({
 				content: `Your vote has changed from "${originalChoice}" to "${choice}".`,
-				fetchReply: true,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(error => console.error(error))
 		}
 
@@ -301,15 +299,13 @@ class PollManager {
 
 			return await interaction.followUp({
 				content: `"${choice}" chosen.`,
-				fetchReply: true,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			}).catch(error => console.error(error))
 		}
 
 		return await interaction.reply({
 			content: `"${choice}" chosen.`,
-			fetchReply: true,
-			ephemeral: true
+			flags: MessageFlags.Ephemeral
 		}).catch(error => console.error(error))
 	}
 
@@ -372,7 +368,7 @@ class PollManager {
 
 				await interaction.reply({
 					content: 'There was an issue while closing the poll.',
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				})
 			}
 
@@ -388,7 +384,7 @@ class PollManager {
 
 		return interaction.reply({
 			content: 'Sorry you don’t have permission to close the poll.',
-			ephemeral: true
+			flags: MessageFlags.Ephemeral
 		}).catch(error => console.error(error))
 	}
 }
