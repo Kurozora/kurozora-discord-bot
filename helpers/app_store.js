@@ -80,6 +80,11 @@ class AppStoreManager {
 	 */
 	isReading = false
 
+	/**
+	 * @param {Promise<void>} prepared - prepared
+	 */
+	prepared
+
 	// MARK: - Initializers
 	/**
 	 * @constructor
@@ -90,6 +95,7 @@ class AppStoreManager {
 	constructor(client, db) {
 		this.client = client
 		this.db = db
+		this.prepared = this.prepare()
 	}
 
 	// MARK: - Functions
@@ -104,6 +110,8 @@ class AppStoreManager {
 			return
 		}
 
+		await this.prepared
+
 		if (!this.client.isReady()) {
 			await new Promise(resolve => this.client.once('clientReady', resolve))
 		}
@@ -111,8 +119,6 @@ class AppStoreManager {
 		if (!await this.channel()) {
 			return
 		}
-
-		await this.prepare()
 
 		if (await this.isFirstRun()) {
 			await this.backfill()
@@ -203,6 +209,7 @@ class AppStoreManager {
 			return
 		}
 
+		await this.prepared
 		this.isReading = true
 
 		try {
@@ -283,6 +290,7 @@ class AppStoreManager {
 			return
 		}
 
+		await this.prepared
 		this.isReading = true
 
 		try {
