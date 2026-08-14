@@ -7,6 +7,15 @@ const kurozoraURL = process.env['APP_URL']
 const kurozoraAPIURL = process.env['KUROZORA_API_URL']
 const appColor = parseInt(process.env['APP_COLOR'].replace('#', ''), 16)
 
+/** The headers sent with every Kurozora API request. */
+const apiHeaders = {
+    'User-Agent': process.env['KUROZORA_USER_AGENT'],
+    'X-API-Key': process.env['KUROZORA_API_KEY']
+}
+
+/** The cached Kurozora URL of each anime title. */
+const animeURLs = new Map()
+
 class KurozoraManager {
     // MARK: - Properties
     /**
@@ -136,11 +145,8 @@ class KurozoraManager {
      * @returns {Object<string, *>} data - data
      */
     async #search(query, type, scope = 'kurozora', limit = 5) {
-        const headers = {
-            "User-Agent": "KurozoraBot/1.11.2 (app.kurozora.tracker; build:1255; KiritoPi 12.0.0) Axios/1.7.7",
-        }
         const data = await axios.get(kurozoraAPIURL + '/v1/search', {
-            headers,
+            headers: apiHeaders,
             params: {
                 'scope': scope,
                 'types': [type],
@@ -236,6 +242,54 @@ class KurozoraManager {
     }
 
     /**
+     * The Kurozora URL of the anime with the given title.
+     *
+     * @param {string} title - title
+     *
+     * @returns {Promise<?string>} url - url
+     */
+    async animeURL(title) {
+        if (!animeURLs.has(title)) {
+            animeURLs.set(title, await this.#findAnimeURL(title))
+        }
+
+        return animeURLs.get(title)
+    }
+
+    /**
+     * Looks up the Kurozora URL of the anime with the given title.
+     *
+     * @param {string} title - title
+     *
+     * @returns {Promise<?string>} url - url
+     */
+    async #findAnimeURL(title) {
+        const identity = await axios.get(kurozoraAPIURL + '/v1/search', {
+            headers: apiHeaders,
+            params: {
+                'scope': 'kurozora',
+                'types': [SearchType.Anime],
+                'query': title.replace(/\s*\(\d{4}\)\s*$/, ''),
+                'limit': 1,
+            }
+        })
+            .then(response => response.data?.data?.shows?.data?.[0])
+            .catch(error => {
+                console.error(`Couldn’t look up “${title}” on Kurozora: ${error.message}`)
+                return null
+            })
+
+        if (!identity?.href) {
+            return null
+        }
+
+        const show = await this.getModelDetails(identity.href)
+        const slug = typeof show === 'string' ? null : show?.attributes?.slug
+
+        return slug ? `${kurozoraURL}/anime/${slug}` : null
+    }
+
+    /**
      * Get the details of a show.
      *
      * @param {string} url - url
@@ -243,11 +297,8 @@ class KurozoraManager {
      * @returns {Object<string, *>|string}
      */
     async getModelDetails(url) {
-        const headers = {
-            "User-Agent": "KurozoraBot/1.11.2 (app.kurozora.tracker; build:1255; KiritoPi 12.0.0) Axios/1.7.7",
-        }
         const data = await axios.get(kurozoraAPIURL + url, {
-            headers,
+            headers: apiHeaders,
         })
             .then(function(response) {
                 const { data } = response.data

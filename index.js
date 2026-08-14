@@ -6,7 +6,7 @@ const { Client, GatewayIntentBits, Partials, PermissionsBitField, MessageEmbed }
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
-const { AnimeManager } = require('./helpers/anime')
+const { GifManager, gifButtonPrefix } = require('./helpers/gif')
 const { KurozoraManager } = require('./helpers/kurozora')
 const { LegalManager } = require('./helpers/legal')
 const { MusicManager } = require('./helpers/music')
@@ -18,7 +18,6 @@ const { open } = require('sqlite')
 const sqlite3 = require('sqlite3').verbose()
 const { Player } = require('discord-player');
 const { registerEvents } = require('./events/events')
-const { AnimeGifType } = require('./enums/AnimeGifType')
 
 // MARK: - Properties
 const prefix = process.env['APP_PREFIX']
@@ -52,8 +51,8 @@ const rest = new REST({ version: '10' })
 
 // Initialize managers
 const activityManager = new ActivityManager(client, rest)
-const animeManager = new AnimeManager(client, rest)
 const kurozoraManager = new KurozoraManager(client, rest)
+const gifManager = new GifManager(client, rest, kurozoraManager)
 const legalManager = new LegalManager()
 const musicManager = new MusicManager(client, rest, client.player);
 let pollManager
@@ -173,7 +172,9 @@ client.on('messageCreate', async message => {
 
 /** Runs when an interaction is created by a user. */
 client.on('interactionCreate', async interaction => {
-	if (interaction.isContextMenuCommand()) {
+	if (interaction.isAutocomplete()) {
+		return await handleAutocomplete(interaction)
+	} else if (interaction.isContextMenuCommand()) {
 		return await handleContextMenu(interaction)
 	} else if (interaction.isCommand()) {
 		return await handleCommand(interaction)
@@ -195,10 +196,6 @@ async function handleCommand(interaction) {
 	const { commandName } = interaction
 
 	switch (commandName) {
-		case 'anime': {
-			let type = interaction.options.getString('type')
-			return await animeManager.search(interaction, type)
-		}
 		case 'cat': {
 			await interaction.deferReply()
 			const {url} = await getCat()
@@ -215,6 +212,10 @@ async function handleCommand(interaction) {
 			const {image} = await axios.get('https://randomfox.ca/floof')
 				.then(response => response.data)
 			return interaction.editReply({files: [image]})
+		}
+		case 'gif': {
+			let query = interaction.options.getString('query')
+			return await gifManager.reply(interaction, query)
 		}
 		case 'search': {
 			await interaction.deferReply()
@@ -329,6 +330,23 @@ async function handleCommand(interaction) {
 }
 
 /**
+ * Handles the focused command option.
+ *
+ * @param interaction - interaction
+ * @returns {Promise<*>}
+ */
+async function handleAutocomplete(interaction) {
+	switch (interaction.commandName) {
+		case 'gif': {
+			return await gifManager.autocomplete(interaction)
+		}
+		default:
+			return interaction.respond([])
+				.catch(error => console.error(error))
+	}
+}
+
+/**
  * Handles the selected context menu.
  *
  * @param interaction - interaction
@@ -414,6 +432,10 @@ async function handleSelectMenu(interaction) {
  * @returns {Promise<void>}
  */
 async function handleButton(interaction) {
+	if (interaction.customId.startsWith(gifButtonPrefix)) {
+		return
+	}
+
 	switch (interaction.customId) {
 		case 'close_poll': {
 			return await pollManager.close(interaction)
@@ -449,10 +471,15 @@ async function getCat() {
 // getRandomAnimeGif()
 
 async function getRandomAnimeGif() {
-	let keys = Object.keys(AnimeGifType)
-	let type = AnimeGifType[keys[ keys.length * Math.random() << 0]];
-	let {url} = await animeManager.searchForType(type)
-	return channel.send({files: [url]})
+	let reaction = gifManager.randomReaction()
+	let url = await gifManager.gif(reaction)
+	let gif = url ? await gifManager.attachment(url) : null
+
+	if (!gif) {
+		return
+	}
+
+	return channel.send({files: [gif]})
 }
 
 /**
