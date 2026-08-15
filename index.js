@@ -9,6 +9,7 @@ const { ActivityManager } = require('./helpers/activities')
 const { AppStoreManager } = require('./helpers/app_store')
 const { Database } = require('./helpers/database')
 const { GifManager, gifButtonPrefix } = require('./helpers/gif')
+const { GifDropManager, gifDropComponentPrefix } = require('./helpers/gif_drop')
 const { KurozoraManager } = require('./helpers/kurozora')
 const { LegalManager } = require('./helpers/legal')
 const { Migrator } = require('./helpers/migrator')
@@ -29,8 +30,6 @@ const token = process.env['TOKEN']
 const appID = process.env['APP_ID']
 const guildID = process.env['GUILD_ID']
 const ownerID = process.env['OWNER_ID']
-const channelID = '935269731349430352'
-const channel = null
 
 const commands = []
 const slashCommandFiles = fs.readdirSync('./commands/slashes')
@@ -61,15 +60,18 @@ const musicManager = new MusicManager(client, rest, client.player);
 let pollManager
 let appStoreManager
 let statsManager
+let gifDropManager
 (async () => {
 	fs.mkdirSync('./database', { recursive: true })
 
 	const db = new Database('./database/main.db')
 
 	await new Migrator(db, './database/migrations').migrate()
+
 	pollManager = new PollManager(client, db)
 	appStoreManager = new AppStoreManager(client, db)
 	statsManager = new StatsManager(client, db)
+	gifDropManager = new GifDropManager(client, db, gifManager, kurozoraManager)
 
 	await Promise.all([
 		appStoreManager.start()
@@ -77,6 +79,8 @@ let statsManager
 		pollManager.start()
 			.catch(error => console.error(error)),
 		statsManager.start()
+			.catch(error => console.error(error)),
+		gifDropManager.start()
 			.catch(error => console.error(error))
 	])
 })()
@@ -240,6 +244,10 @@ async function handleCommand(interaction) {
 		case 'gif': {
 			let query = interaction.options.getString('query')
 			return await gifManager.reply(interaction, query)
+		}
+		case 'gifdrop': {
+			return await gifDropManager.handle(interaction)
+				.catch(error => console.error(error))
 		}
 		case 'search': {
 			await interaction.deferReply()
@@ -421,6 +429,10 @@ async function handleContextMenu(interaction) {
 		case 'Post Video': {
 			return await twitterManager.postFrom(interaction, interaction.targetMessage)
 		}
+		case 'Create Poll': {
+			return await pollManager.create(interaction, interaction.targetMessage.content)
+				.catch(error => console.error(error))
+		}
 		default:
 			return interaction.reply({
 				content: `This context menu command is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
@@ -486,6 +498,11 @@ async function handleSelectMenu(interaction) {
  * @returns {Promise<void>}
  */
 async function handleButton(interaction) {
+	if (interaction.customId.startsWith(gifDropComponentPrefix)) {
+		return await gifDropManager.handleComponent(interaction)
+			.catch(error => console.error(error))
+	}
+
 	if (interaction.customId.startsWith(gifButtonPrefix)) {
 		return
 	}
@@ -517,6 +534,11 @@ async function handleModal(interaction) {
 			.catch(error => console.error(error))
 	}
 
+	if (interaction.customId.startsWith(gifDropComponentPrefix)) {
+		return await gifDropManager.handleComponent(interaction)
+			.catch(error => console.error(error))
+	}
+
 	return interaction.reply({
 		content: `This form is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
 		flags: MessageFlags.Ephemeral
@@ -536,24 +558,6 @@ async function getCat() {
 	}
 
 	return response[0]
-}
-
-// channel = await client.channels.fetch(channelID)
-// 	.then(channel => channel)
-// 	.catch(console.error)
-// console.log(channel)
-// getRandomAnimeGif()
-
-async function getRandomAnimeGif() {
-	let reaction = gifManager.randomReaction()
-	let url = await gifManager.gif(reaction)
-	let gif = url ? await gifManager.attachment(url) : null
-
-	if (!gif) {
-		return
-	}
-
-	return channel.send({files: [gif]})
 }
 
 /**

@@ -31,6 +31,7 @@ Full feature-list:
     - Neko (Cat)
     - Inu (Dog)
     - Kitsu (Fox)
+- Drop a random anime GIF in a channel that has gone quiet
 - Play anime music:
     - Queue
     - List queue
@@ -152,6 +153,14 @@ Deny `Send Messages` and allow `Add Reactions` for `@everyone` on the channel to
 > Reviews written before the first run are skipped. Set `APP_STORE_BACKFILL_LIMIT` to post that many of the newest ones instead.
 > 
 > If your app is available in specific storefronts, set `APP_STORE_STOREFRONTS` to the country codes of those storefronts, such as `us,nl,jp`.
+
+### GIF Drops (optional)
+
+KuroBot drops a random anime GIF in a channel of your choosing.
+
+1. Run `/gifdrop set` and pick the channel
+
+`/gifdrop` needs `Manage Server`. KuroBot needs `View Channel`, `Send Messages`, `Attach Files` and `Read Message History` in the channel.
 
 ## Run
 

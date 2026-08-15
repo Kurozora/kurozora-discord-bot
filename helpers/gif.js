@@ -226,6 +226,19 @@ for (const [reaction, nekosBestReaction] of Object.entries(otakuGifsReactions)) 
 /** Every reaction the bot offers. */
 const reactions = Object.keys(reactionProviders).sort()
 
+/** The reactions an unattended drop may use. */
+const dropReactions = [
+	'angry', 'baka', 'bleh', 'blush', 'bonk', 'bored', 'celebrate', 'cheers',
+	'clap', 'confused', 'cool', 'cry', 'dance', 'evillaugh', 'facepalm', 'feed',
+	'handshake', 'happy', 'headbang', 'highfive', 'hug', 'huh', 'kick', 'laugh',
+	'lurk', 'mad', 'nervous', 'nod', 'nom', 'nope', 'nya', 'pat', 'pinch',
+	'poke', 'pout', 'punch', 'run', 'sad', 'salute', 'scared', 'shake',
+	'shocked', 'shoot', 'shout', 'shrug', 'shy', 'sigh', 'sing', 'sip', 'slap',
+	'sleep', 'slowclap', 'smile', 'smug', 'sneeze', 'sorry', 'spin', 'stare',
+	'stop', 'tableflip', 'teehee', 'think', 'thumbsup', 'tired', 'wag', 'wave',
+	'wink', 'woah', 'yawn', 'yay', 'yeet'
+].filter(reaction => reactionProviders[reaction])
+
 /**
  * The nekos.best name of the given reaction.
  *
@@ -431,24 +444,12 @@ class GifManager {
 	}
 
 	/**
-	 * A random reaction out of the ones the bot offers.
+	 * A random reaction out of the ones an unattended drop may use.
 	 *
 	 * @returns {string} reaction - reaction
 	 */
-	randomReaction() {
-		return reactions[Math.floor(Math.random() * reactions.length)]
-	}
-
-	/**
-	 * The URL of a random GIF for the given reaction.
-	 *
-	 * @param {string} reaction - reaction
-	 *
-	 * @returns {Promise<?string>} url - url
-	 */
-	async gif(reaction) {
-		const gifs = await this.gifs(reaction, null, 1)
-		return gifs[0]?.url ?? null
+	randomDropReaction() {
+		return dropReactions[Math.floor(Math.random() * dropReactions.length)]
 	}
 
 	/**
