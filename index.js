@@ -19,6 +19,7 @@ const { StatsManager } = require('./helpers/stats')
 const { StreamManager } = require('./helpers/stream')
 const { TwitterManager } = require('./helpers/twitter')
 const { UtilsManager } = require('./helpers/utils')
+const { VerificationManager, verificationComponentPrefix } = require('./helpers/verification')
 const { LinkCleaner } = require('./helpers/link_cleaner')
 const { Player } = require('discord-player');
 const { registerEvents } = require('./events/events')
@@ -61,6 +62,7 @@ let pollManager
 let appStoreManager
 let statsManager
 let gifDropManager
+let verificationManager
 (async () => {
 	fs.mkdirSync('./database', { recursive: true })
 
@@ -72,6 +74,7 @@ let gifDropManager
 	appStoreManager = new AppStoreManager(client, db)
 	statsManager = new StatsManager(client, db)
 	gifDropManager = new GifDropManager(client, db, gifManager, kurozoraManager)
+	verificationManager = new VerificationManager(client, db)
 
 	await Promise.all([
 		appStoreManager.start()
@@ -81,6 +84,8 @@ let gifDropManager
 		statsManager.start()
 			.catch(error => console.error(error)),
 		gifDropManager.start()
+			.catch(error => console.error(error)),
+		verificationManager.start()
 			.catch(error => console.error(error))
 	])
 })()
@@ -372,6 +377,10 @@ async function handleCommand(interaction) {
 			return await statsManager.report(interaction)
 				.catch(error => console.error(error))
 		}
+		case 'verification': {
+			return await verificationManager.handle(interaction)
+				.catch(error => console.error(error))
+		}
 		default:
 			return interaction.reply({
 				content: `This command is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
@@ -498,6 +507,11 @@ async function handleSelectMenu(interaction) {
  * @returns {Promise<void>}
  */
 async function handleButton(interaction) {
+	if (interaction.customId.startsWith(verificationComponentPrefix)) {
+		return await verificationManager.handleComponent(interaction)
+			.catch(error => console.error(error))
+	}
+
 	if (interaction.customId.startsWith(gifDropComponentPrefix)) {
 		return await gifDropManager.handleComponent(interaction)
 			.catch(error => console.error(error))
@@ -529,6 +543,11 @@ async function handleButton(interaction) {
  * @returns {Promise<void>}
  */
 async function handleModal(interaction) {
+	if (interaction.customId.startsWith(verificationComponentPrefix)) {
+		return await verificationManager.handleComponent(interaction)
+			.catch(error => console.error(error))
+	}
+
 	if (interaction.customId === `${pollComponentPrefix}_create`) {
 		return await pollManager.compose(interaction)
 			.catch(error => console.error(error))

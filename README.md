@@ -44,6 +44,7 @@ Full feature-list:
 - Clear URLs from tracking parameters [^1]
 - Post videos and GIFs from Twitter/X links
 - Poll new App Store reviews
+- Hold new members until they verify they're human
 
 [^1]: works only on the Kurozora server. Support can be extended if there's interest.
 
@@ -161,6 +162,30 @@ KuroBot drops a random anime GIF in a channel of your choosing.
 1. Run `/gifdrop set` and pick the channel
 
 `/gifdrop` needs `Manage Server`. KuroBot needs `View Channel`, `Send Messages`, `Attach Files` and `Read Message History` in the channel.
+
+### Verification (optional)
+
+KuroBot can hold every new member until they verify they're human.
+
+1. Set `VERIFICATION_URL`, `VERIFICATION_SOLVED_URL` and `VERIFICATION_SECRET`
+2. Turn on the `Server Members Intent` under `Privileged Gateway Intents` in the [Discord Developer Portal](https://discord.com/developers/applications), then declare it in `index.js`
+3. Run `/verification set` and pick the channel members verify in and the role they're given
+4. Run `/verification backfill` **before** closing the server
+5. Give `@everyone` nothing but the verification channel, and put every other channel behind the role
+
+> [!NOTE]
+> `/verification` needs `Manage Server`. KuroBot needs `View Channel`, `Send Messages` and `Read Message History` in the verification channel, plus `Manage Roles`, `Kick Members`, `Manage Server` and `Create Invite` in the server. Its own role must sit above the role it hands out.
+> 
+> The `Server Members Intent` is granted on request, rather than by the toggle, for apps seen by more than 10,000 unique users.
+
+#### The challenge page
+
+The page lives on `VERIFICATION_URL` and is yours to host.
+
+1. **Verify** hands the member `VERIFICATION_URL?t=<claim>.<signature>`, where `<claim>` is `base64url(guildID:userID:nonce:expiry)` and `<signature>` is its `HMAC-SHA256` under `VERIFICATION_SECRET`, `base64url` encoded.
+2. The page refuses a claim whose signature doesn't match or whose expiry has passed, and presents its challenge.
+3. A solved challenge records the nonce, and redirects the member back to Discord.
+4. `GET VERIFICATION_SOLVED_URL?nonces=a,b,c`, carrying the `X-API-Key` header, answers `{"solved": ["a"]}` — the subset of those nonces that were solved.
 
 ## Run
 
