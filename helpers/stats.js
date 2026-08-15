@@ -35,9 +35,6 @@ const nameLength = 22
 /** The command the report is read with. It is left out of the counts. */
 const reportCommand = '/stats'
 
-/** The tables an earlier version of the report wrote. */
-const supersededTables = ['stats_active_guilds', 'stats_actors', 'stats_salt']
-
 class StatsManager {
 	// MARK: - Properties
 	/**
@@ -55,11 +52,6 @@ class StatsManager {
 	 */
 	timer
 
-	/**
-	 * @param {Promise<void>} prepared - prepared
-	 */
-	prepared
-
 	// MARK: - Initializers
 	/**
 	 * @constructor
@@ -70,7 +62,6 @@ class StatsManager {
 	constructor(client, db) {
 		this.client = client
 		this.db = db
-		this.prepared = this.prepare()
 	}
 
 	// MARK: - Functions
@@ -80,7 +71,6 @@ class StatsManager {
 	 * @returns {Promise<void>}
 	 */
 	async start() {
-		await this.prepared
 
 		if (!this.client.isReady()) {
 			await new Promise(resolve => this.client.once('clientReady', resolve))
@@ -114,48 +104,6 @@ class StatsManager {
 	}
 
 	/**
-	 * Creates the tables the reach and the usage are tracked in.
-	 *
-	 * @returns {Promise<void>}
-	 */
-	async prepare() {
-		await this.db.exec(`CREATE TABLE IF NOT EXISTS stats_daily (
-			day TEXT PRIMARY KEY,
-			guilds INTEGER NOT NULL DEFAULT 0,
-			members INTEGER NOT NULL DEFAULT 0
-		)`)
-		await this.db.exec(`CREATE TABLE IF NOT EXISTS stats_commands (
-			day TEXT NOT NULL,
-			command TEXT NOT NULL,
-			invocations INTEGER NOT NULL DEFAULT 0,
-			PRIMARY KEY (day, command)
-		)`)
-		await this.db.exec(`CREATE TABLE IF NOT EXISTS stats_guilds (
-			guildID TEXT PRIMARY KEY,
-			name TEXT NOT NULL,
-			members INTEGER NOT NULL DEFAULT 0,
-			joinedAt TEXT,
-			leftAt TEXT
-		)`)
-		await this.db.exec(`CREATE TABLE IF NOT EXISTS stats_guild_usage (
-			day TEXT NOT NULL,
-			guildID TEXT NOT NULL,
-			invocations INTEGER NOT NULL DEFAULT 0,
-			PRIMARY KEY (day, guildID)
-		)`)
-
-		for (const table of supersededTables) {
-			await this.db.exec(`DROP TABLE IF EXISTS ${table}`)
-		}
-
-		const columns = await this.db.all('PRAGMA table_info(stats_daily)')
-
-		if (columns.some(column => column.name === 'activeGuilds')) {
-			await this.db.exec('ALTER TABLE stats_daily DROP COLUMN activeGuilds')
-		}
-	}
-
-	/**
 	 * Counts an interaction against the day it was created on. Nothing but the
 	 * command it names and the server it came from is read.
 	 *
@@ -170,7 +118,6 @@ class StatsManager {
 			return
 		}
 
-		await this.prepared
 
 		const day = this.day()
 
@@ -215,7 +162,6 @@ class StatsManager {
 	 * @returns {Promise<void>}
 	 */
 	async markLeft(guildID) {
-		await this.prepared
 		await this.db.run('UPDATE stats_guilds SET leftAt = ? WHERE guildID = ?', new Date().toISOString(), guildID)
 		await this.snapshot()
 	}
@@ -236,7 +182,6 @@ class StatsManager {
 		}
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral })
-		await this.prepared
 		await this.snapshot()
 
 		const since = this.day(-rankingDays + 1)

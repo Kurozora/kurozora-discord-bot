@@ -13,7 +13,7 @@ With KuroBot, you can easily search for anime, manga, games, music, characters, 
 
 The data is presented in nice embeds which include titles, synopsis, poster/banner images, status, type, source, TV/age rating, genres, themes, broadcast/publication dates, seasons/volumes/editions, episodes/chapters, duration, ratings, and more!
 
-But that’s not all. Kurozora is multipurpose and, among many stuff, allows you to quickly share anime GIFs, and search for anime music on YouTube, Spotify and Apple Music at the same time!
+But that’s not all. Kurozora is multipurpose and, among many things, allows you to quickly share anime GIFs, and search for anime music on YouTube, Spotify, and Apple Music at the same time!
 
 Full feature-list:
 
@@ -42,7 +42,7 @@ Full feature-list:
 - Create anime polls
 - Clear URLs from tracking parameters [^1]
 - Post videos and GIFs from Twitter/X links
-- Post new App Store reviews
+- Poll new App Store reviews
 
 [^1]: works only on the Kurozora server. Support can be extended if there's interest.
 
@@ -196,7 +196,7 @@ If you have any questions or just want to say hi, join the Kurozora [Discord](ht
 
 # Code of Conduct
 
-This project has a [Code of Conduct](CODE_OF_CONDUCT.md). By interacting with this repository, or community you agree to abide by its terms.
+This project has a [Code of Conduct](CODE_OF_CONDUCT.md). By interacting with this repository or community, you agree to abide by its terms.
 
 # More by Kurozora
 

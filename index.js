@@ -11,6 +11,7 @@ const { Database } = require('./helpers/database')
 const { GifManager, gifButtonPrefix } = require('./helpers/gif')
 const { KurozoraManager } = require('./helpers/kurozora')
 const { LegalManager } = require('./helpers/legal')
+const { Migrator } = require('./helpers/migrator')
 const { MusicManager, musicComponentPrefix } = require('./helpers/music')
 const { PollManager, pollComponentPrefix } = require('./helpers/poll')
 const { StatsManager } = require('./helpers/stats')
@@ -64,6 +65,8 @@ let statsManager
 	fs.mkdirSync('./database', { recursive: true })
 
 	const db = new Database('./database/main.db')
+
+	await new Migrator(db, './database/migrations').migrate()
 	pollManager = new PollManager(client, db)
 	appStoreManager = new AppStoreManager(client, db)
 	statsManager = new StatsManager(client, db)

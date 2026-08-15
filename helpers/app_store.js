@@ -80,11 +80,6 @@ class AppStoreManager {
 	 */
 	isReading = false
 
-	/**
-	 * @param {Promise<void>} prepared - prepared
-	 */
-	prepared
-
 	// MARK: - Initializers
 	/**
 	 * @constructor
@@ -95,7 +90,6 @@ class AppStoreManager {
 	constructor(client, db) {
 		this.client = client
 		this.db = db
-		this.prepared = this.prepare()
 	}
 
 	// MARK: - Functions
@@ -110,7 +104,6 @@ class AppStoreManager {
 			return
 		}
 
-		await this.prepared
 
 		if (!this.client.isReady()) {
 			await new Promise(resolve => this.client.once('clientReady', resolve))
@@ -171,24 +164,6 @@ class AppStoreManager {
 	}
 
 	/**
-	 * Creates the tables the posted reviews and read storefronts are tracked in.
-	 *
-	 * @returns {Promise<void>}
-	 */
-	async prepare() {
-		await this.db.exec(`CREATE TABLE IF NOT EXISTS app_store_reviews (
-			reviewID TEXT NOT NULL,
-			storefront TEXT NOT NULL,
-			postedAt TEXT NOT NULL,
-			PRIMARY KEY (reviewID, storefront)
-		)`)
-		await this.db.exec(`CREATE TABLE IF NOT EXISTS app_store_storefronts (
-			storefront TEXT PRIMARY KEY,
-			readAt TEXT NOT NULL
-		)`)
-	}
-
-	/**
 	 * Whether no storefront has been read yet.
 	 *
 	 * @returns {Promise<boolean>}
@@ -209,7 +184,6 @@ class AppStoreManager {
 			return
 		}
 
-		await this.prepared
 		this.isReading = true
 
 		try {
@@ -290,7 +264,6 @@ class AppStoreManager {
 			return
 		}
 
-		await this.prepared
 		this.isReading = true
 
 		try {
