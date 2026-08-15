@@ -42,11 +42,12 @@ Full feature-list:
 - Create stream links
 - Create anime polls
 - Clear URLs from tracking parameters [^1]
-- Post videos and GIFs from Twitter/X links
-- Poll new App Store reviews
-- Hold new members until they verify they're human
+- Post videos and GIFs from Twitter/X links [^1]
+- Poll new App Store reviews [^2]
+- Hold new members until they verify they're human [^1]
 
-[^1]: works only on the Kurozora server. Support can be extended if there's interest.
+[^1]: these features were purpose-built for the Kurozora server, but you are more than welcome to use them in your own server too. 
+[^2]: works only on the Kurozora server.
 
 # Screenshots
 
@@ -162,6 +163,14 @@ KuroBot drops a random anime GIF in a channel of your choosing.
 1. Run `/gifdrop set` and pick the channel
 
 `/gifdrop` needs `Manage Server`. KuroBot needs `View Channel`, `Send Messages`, `Attach Files` and `Read Message History` in the channel.
+
+### Link Cleaner (optional)
+
+KuroBot answers a link carrying tracking with a clean copy of it.
+
+1. Run `/linkcleaner on`
+
+`/linkcleaner` needs `Manage Server`. KuroBot needs `Send Messages` and `Manage Messages` in the channels it cleans in.
 
 ### Verification (optional)
 

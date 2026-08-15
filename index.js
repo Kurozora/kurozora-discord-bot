@@ -1,8 +1,7 @@
 require('dotenv-expand').expand(require('dotenv').config());
 const axios = require('axios')
 const fs = require('fs')
-const moment = require('moment')
-const { Client, GatewayIntentBits, MessageFlags, Partials, PermissionsBitField, MessageEmbed } = require('discord.js')
+const { Client, GatewayIntentBits, Message, MessageFlags, PermissionsBitField } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const { ActivityManager } = require('./helpers/activities')
@@ -20,16 +19,13 @@ const { StreamManager } = require('./helpers/stream')
 const { TwitterManager } = require('./helpers/twitter')
 const { UtilsManager } = require('./helpers/utils')
 const { VerificationManager, verificationComponentPrefix } = require('./helpers/verification')
-const { LinkCleaner } = require('./helpers/link_cleaner')
+const { LinkCleaner, linkCleanerComponentPrefix } = require('./helpers/link_cleaner')
 const { Player } = require('discord-player');
 const { registerEvents } = require('./events/events')
 
 // MARK: - Properties
-const prefix = process.env['APP_PREFIX']
-const webhookName = 'Kurozora_webhook'
 const token = process.env['TOKEN']
 const appID = process.env['APP_ID']
-const guildID = process.env['GUILD_ID']
 const ownerID = process.env['OWNER_ID']
 
 const commands = []
@@ -62,6 +58,7 @@ let pollManager
 let appStoreManager
 let statsManager
 let gifDropManager
+let linkCleaner
 let verificationManager
 (async () => {
 	fs.mkdirSync('./database', { recursive: true })
@@ -74,6 +71,7 @@ let verificationManager
 	appStoreManager = new AppStoreManager(client, db)
 	statsManager = new StatsManager(client, db)
 	gifDropManager = new GifDropManager(client, db, gifManager, kurozoraManager)
+	linkCleaner = new LinkCleaner(db)
 	verificationManager = new VerificationManager(client, db)
 
 	await Promise.all([
@@ -85,6 +83,8 @@ let verificationManager
 			.catch(error => console.error(error)),
 		gifDropManager.start()
 			.catch(error => console.error(error)),
+		linkCleaner.start()
+			.catch(error => console.error(error)),
 		verificationManager.start()
 			.catch(error => console.error(error))
 	])
@@ -92,7 +92,6 @@ let verificationManager
 const streamManager = new StreamManager(client, rest)
 const twitterManager = new TwitterManager()
 const utilsManager = new UtilsManager(client, rest)
-const linkCleaner = new LinkCleaner()
 
 // Add commands
 for (const file of slashCommandFiles) {
@@ -125,76 +124,19 @@ registerEvents(client)
 
 /** Runs when a message is created by a user. */
 client.on('messageCreate', async message => {
-	// Don’t do anything if it's from a bot or doesn’t start with the prefix
-	if (message.author.bot) {
+	if (message.author.bot || !message.inGuild()) {
 		return
 	}
 
 	if (message.content.toLowerCase() === 'bad bot') {
-		// Get the last two messages sent in the channel
-		message.channel.messages.fetch({
-			limit: 2
-		}).then(messages => {
-			const lastMessage = messages.last();
-
-			// Check if the last message was sent by the bot
-			if (lastMessage.author.id === client.user.id) {
-				// check if the user who sent the "bad bot" message is the same as the user who triggered the bot
-				if (message.author.id === lastMessage.interaction.user.id) {
-					lastMessage.delete();
-					message.delete()
-				}
-			}
-		}).catch(console.error);
+		return await undoLastCommand(message)
 	}
 
-	if (message.guild.id !== guildID) {
+	if (!message.member.permissions.has(PermissionsBitField.Flags.SendMessages)) {
 		return
 	}
 
-	if (!message.content.startsWith(prefix)) {
-		if (!message.member.permissions.has(PermissionsBitField.Flags.SendMessages)) {
-			return
-		}
-
-		return await linkCleaner.clean(message)
-	}
-
-	// Perform the requested command
-	if (message.content === `${prefix}setup`) {
-		const args = message.content.slice(`${prefix.length}setup`).trim().split(/ +/g)
-
-		let webhooks = await message.guild.fetchWebhooks()
-			.then(webhook => webhook)
-			.catch(console.error)
-
-		if (webhooks.find(function(webhook) {
-			console.log(webhook)
-			return webhook.name === webhookName
-		})) {
-			return message.reply(`Webhook with the name "${webhookName}" already exists.`)
-		}
-
-		// Check for permissions because we don’t need everyone making webhooks!
-		if (!message.member.permissions.has(PermissionsBitField.Flags.ManageWebhooks)) {
-			return message.channel.send('You are not authorized to do this!')
-		}
-
-		// What if the bot can’t do it?
-		if (!message.guild.me.permissions.has(PermissionsBitField.Flags.ManageWebhooks)) {
-			return message.channel.send(`I don’t have the proper permission (Manage Webhooks) to make webhooks!`)
-		}
-
-		message.channel.createWebhook(webhookName)
-			.then(webhook => console.log(`Created webhook ${webhook}`))
-			.catch(console.error)
-
-		message.channel.send(`Kurozora is all set up. Enjoy!`)
-	} else if (message.content.startsWith(`${prefix}test`)) {
-		sendMessageUsingWebhook(message)
-	} else {
-		message.channel.send('You need to enter a valid command!')
-	}
+	return await linkCleaner?.clean(message)
 })
 
 /** Runs when an interaction is created by a user. */
@@ -377,6 +319,10 @@ async function handleCommand(interaction) {
 			return await statsManager.report(interaction)
 				.catch(error => console.error(error))
 		}
+		case 'linkcleaner': {
+			return await linkCleaner.handle(interaction)
+				.catch(error => console.error(error))
+		}
 		case 'verification': {
 			return await verificationManager.handle(interaction)
 				.catch(error => console.error(error))
@@ -507,6 +453,11 @@ async function handleSelectMenu(interaction) {
  * @returns {Promise<void>}
  */
 async function handleButton(interaction) {
+	if (interaction.customId.startsWith(linkCleanerComponentPrefix)) {
+		return await linkCleaner.handleComponent(interaction)
+			.catch(error => console.error(error))
+	}
+
 	if (interaction.customId.startsWith(verificationComponentPrefix)) {
 		return await verificationManager.handleComponent(interaction)
 			.catch(error => console.error(error))
@@ -582,7 +533,7 @@ async function getCat() {
 /**
  * Confirms the user has joined a voice channel.
  *
- * @param {VoiceChannle} voiceChannel - voice channel
+ * @param {VoiceChannel} voiceChannel - voice channel
  * @param {Interaction} interaction - interaction
  */
 function confirmConnectedToVC(voiceChannel, interaction) {
@@ -596,29 +547,27 @@ function confirmConnectedToVC(voiceChannel, interaction) {
 	return true
 }
 
-async function sendMessageUsingWebhook(message) {
-	let webhooks = await message.guild.fetchWebhooks()
-		.then(webhook => webhook)
-		.catch(console.error)
+/**
+ * Deletes the bot’s last answer to the author.
+ *
+ * @param {Message} message - message
+ *
+ * @returns {Promise<void>}
+ */
+async function undoLastCommand(message) {
+	const messages = await message.channel.messages.fetch({ limit: 2 })
+		.catch(error => console.error(error))
+	const lastMessage = messages?.last()
 
-	let kWebhook = webhooks.find(function(webhook) {
-		return webhook.name === webhookName
-	})
-
-	if (kWebhook) {
-		const emoji = client.emojis.cache.find(emoji => emoji.name === 'lsd_')
-
-		kWebhook.send({
-			content: `${message.content} ${emoji}`,
-			username: message.author.username,
-			avatarURL: message.author.avatarURL(),
-		})
+	if (lastMessage?.author.id !== client.user.id || message.author.id !== lastMessage.interaction?.user.id) {
+		return
 	}
-// message.channel.createWebhook(message.author.username, {avatar: message.author.avatarURL()}).then(webhook => {
-// 	webhook.send(msg).then(() => {
-// 		webhook.delete()
-// 	})
-// })
+
+	await lastMessage.delete()
+		.catch(error => console.error(error))
+
+	await message.delete()
+		.catch(error => console.error(error))
 }
 
 // Login client

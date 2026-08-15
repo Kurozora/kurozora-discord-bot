@@ -1,7 +1,15 @@
+const fs = require('fs')
 const { spawn } = require('child_process')
 const path = require('path')
-const { Message, MessageFlags, PermissionsBitField } = require('discord.js')
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Interaction, Message, MessageFlags, PermissionsBitField } = require('discord.js')
+const { Database } = require('./database')
 const urlShorteners = require('../resources/url_shorteners.json')
+
+/** The color a report is embedded with. */
+const appColor = parseInt(process.env['APP_COLOR'].replace('#', ''), 16)
+
+/** The user an unrecognized control is reported to. */
+const ownerID = process.env['OWNER_ID']
 
 /** The interpreter the cleaner scripts run under. */
 const interpreter = path.join(__dirname, '..', 'python', '.venv', 'bin', 'python')
@@ -44,6 +52,9 @@ const hostTrackingParameters = [
 	{ host: youtubeLink, parameters: ['si'] }
 ]
 
+/** The prefix on every link cleaner control’s custom id. */
+const componentPrefix = 'linkcleaner_'
+
 /**
  * The given url, parsed.
  *
@@ -60,7 +71,87 @@ function parsed(url) {
 }
 
 class LinkCleaner {
+	// MARK: - Properties
+	/**
+	 * @param {Database} db - db
+	 */
+	db
+
+	// MARK: - Initializers
+	/**
+	 * @constructor
+	 *
+	 * @param {Database} db - db
+	 */
+	constructor(db) {
+		this.db = db
+	}
+
 	// MARK: - Functions
+	/**
+	 * Starts cleaning the links posted in every server it is turned on in.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async start() {
+		if (!this.isInstalled()) {
+			console.log('🧹 Link cleaning is off. Run ./install.sh to turn it on.')
+			return
+		}
+
+		const configured = this.db.get('SELECT COUNT(*) AS servers FROM link_cleaner_settings WHERE isEnabled = 1')
+
+		console.log(`🧹 Cleaning the links posted in ${configured.servers} servers. Run /linkcleaner on to add one.`)
+	}
+
+	/**
+	 * Whether the interpreter the cleaner scripts run under is installed.
+	 *
+	 * @returns {boolean} isInstalled - is installed
+	 */
+	isInstalled() {
+		return fs.existsSync(interpreter)
+	}
+
+	// MARK: - Settings
+	/**
+	 * A server’s link cleaning, or null when it has none.
+	 *
+	 * @param {?string} guildID - guild id
+	 *
+	 * @returns {?Object} config - config
+	 */
+	config(guildID) {
+		return this.db.get('SELECT * FROM link_cleaner_settings WHERE guildID = ?', guildID) ?? null
+	}
+
+	/**
+	 * Turns a server’s link cleaning on.
+	 *
+	 * @param {string} guildID - guild id
+	 *
+	 * @returns {Object} config - config
+	 */
+	enable(guildID) {
+		this.db.run(`INSERT INTO link_cleaner_settings (guildID, isEnabled, configuredAt)
+			VALUES (?, 1, ?)
+			ON CONFLICT (guildID) DO UPDATE SET isEnabled = 1`,
+		guildID,
+		new Date().toISOString())
+
+		return this.config(guildID)
+	}
+
+	/**
+	 * Turns a server’s link cleaning off.
+	 *
+	 * @param {string} guildID - guild id
+	 */
+	disable(guildID) {
+		this.db.run('UPDATE link_cleaner_settings SET isEnabled = 0 WHERE guildID = ?', guildID)
+	}
+
+	// MARK: - Cleaning
 	/**
 	 * Posts cleaned copies of the links the given message holds.
 	 *
@@ -81,20 +172,28 @@ class LinkCleaner {
 			return
 		}
 
+		const config = this.config(message.guildId)
+
+		if (!config?.isEnabled) {
+			return
+		}
+
 		const tracked = candidates.some(link => this.isShortenedLink(link) || this.hasTrackedParameters(link))
-		const suppressing = tracked ? this.suppressEmbeds(message, true) : Promise.resolve()
+		const suppressing = tracked ? this.suppressEmbeds(message, config, true) : Promise.resolve()
 		const cleaned = await Promise.all(candidates.map(link => this.cleanedLink(link)))
 		const changed = cleaned.filter(Boolean)
 
 		await suppressing
 
 		if (!changed.length) {
-			return tracked ? this.suppressEmbeds(message, false) : undefined
+			return tracked ? this.suppressEmbeds(message, config, false) : undefined
 		}
 
 		if (!tracked) {
-			await this.suppressEmbeds(message, true)
+			await this.suppressEmbeds(message, config, true)
 		}
+
+		this.record(config, changed.length)
 
 		const notice = `-# 🧹 Tracking removed from ${changed.length === 1 ? 'link' : 'links'}`
 
@@ -106,14 +205,32 @@ class LinkCleaner {
 	}
 
 	/**
+	 * Counts the links a server had cleaned.
+	 *
+	 * @param {Object} config - config
+	 * @param {number} links - links
+	 */
+	record(config, links) {
+		this.db.run('UPDATE link_cleaner_settings SET cleanedLinks = cleanedLinks + ?, cleanedAt = ? WHERE guildID = ?',
+			links,
+			new Date().toISOString(),
+			config.guildID)
+	}
+
+	/**
 	 * Hides or restores the link previews on the given message.
 	 *
 	 * @param {Message} message - message
+	 * @param {Object} config - config
 	 * @param {boolean} suppress - suppress
 	 *
 	 * @returns {Promise<void>}
 	 */
-	async suppressEmbeds(message, suppress) {
+	async suppressEmbeds(message, config, suppress) {
+		if (!config.hidesPreviews) {
+			return
+		}
+
 		if (!message.guild?.members?.me?.permissionsIn(message.channel).has(PermissionsBitField.Flags.ManageMessages)) {
 			return
 		}
@@ -341,8 +458,272 @@ class LinkCleaner {
 
 		return url.href
 	}
+
+	// MARK: - Commands
+	/**
+	 * Handles the selected subcommand.
+	 *
+	 * @param {Interaction} interaction - interaction
+	 *
+	 * @returns {Promise<*>}
+	 */
+	async handle(interaction) {
+		if (!interaction.inGuild()) {
+			return interaction.reply({
+				content: 'Link cleaning is set up per server.',
+				flags: MessageFlags.Ephemeral
+			}).catch(error => console.error(error))
+		}
+
+		switch (interaction.options.getSubcommand()) {
+			case 'on': {
+				return this.turnOn(interaction)
+			}
+			case 'off': {
+				return this.turnOff(interaction)
+			}
+			case 'test': {
+				return this.test(interaction)
+			}
+			default: {
+				return this.report(interaction)
+			}
+		}
+	}
+
+	/**
+	 * Turns a server’s link cleaning on, and reports it.
+	 *
+	 * @param {Interaction} interaction - interaction
+	 *
+	 * @returns {Promise<*>}
+	 */
+	async turnOn(interaction) {
+		if (!this.isInstalled()) {
+			return this.reportMissingInterpreter(interaction)
+		}
+
+		const config = this.enable(interaction.guildId)
+
+		return interaction.reply({
+			content: 'Tracked links are answered with a clean copy.',
+			...this.payload(config),
+			flags: MessageFlags.Ephemeral
+		}).catch(error => console.error(error))
+	}
+
+	/**
+	 * Turns a server’s link cleaning off, and reports it.
+	 *
+	 * @param {Interaction} interaction - interaction
+	 *
+	 * @returns {Promise<*>}
+	 */
+	async turnOff(interaction) {
+		const config = this.config(interaction.guildId)
+
+		if (!config?.isEnabled) {
+			return interaction.reply({
+				content: 'Links are already left alone.',
+				flags: MessageFlags.Ephemeral
+			}).catch(error => console.error(error))
+		}
+
+		this.disable(interaction.guildId)
+
+		return interaction.reply({
+			content: 'Links are left alone.',
+			...this.payload(this.config(interaction.guildId)),
+			flags: MessageFlags.Ephemeral
+		}).catch(error => console.error(error))
+	}
+
+	/**
+	 * Reports a server’s link cleaning.
+	 *
+	 * @param {Interaction} interaction - interaction
+	 *
+	 * @returns {Promise<*>}
+	 */
+	async report(interaction) {
+		const config = this.config(interaction.guildId)
+
+		if (!config) {
+			return interaction.reply({
+				content: 'Links aren’t cleaned here. Run `/linkcleaner on` to have every tracked link answered with a clean copy.',
+				flags: MessageFlags.Ephemeral
+			}).catch(error => console.error(error))
+		}
+
+		return interaction.reply({
+			...this.payload(config),
+			flags: MessageFlags.Ephemeral
+		}).catch(error => console.error(error))
+	}
+
+	/**
+	 * Reports what a link is cleaned down to, without posting it.
+	 *
+	 * @param {Interaction} interaction - interaction
+	 *
+	 * @returns {Promise<*>}
+	 */
+	async test(interaction) {
+		if (!this.isInstalled()) {
+			return this.reportMissingInterpreter(interaction)
+		}
+
+		const link = interaction.options.getString('link').trim()
+
+		if (!parsed(link)) {
+			return interaction.reply({
+				content: 'That isn’t a link.',
+				flags: MessageFlags.Ephemeral
+			}).catch(error => console.error(error))
+		}
+
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral })
+
+		const cleaned = await this.cleanedLink(link)
+
+		return interaction.editReply({
+			content: cleaned ? `That link is posted as:\n${cleaned}` : 'That link carries no tracking, and is left alone.',
+			allowedMentions: { parse: [] }
+		}).catch(error => console.error(error))
+	}
+
+	/**
+	 * Reports that the interpreter the cleaner scripts run under is missing.
+	 *
+	 * @param {Interaction} interaction - interaction
+	 *
+	 * @returns {Promise<*>}
+	 */
+	async reportMissingInterpreter(interaction) {
+		return interaction.reply({
+			content: 'Links can’t be cleaned until `./install.sh` is run on this instance.',
+			flags: MessageFlags.Ephemeral
+		}).catch(error => console.error(error))
+	}
+
+	/**
+	 * A server’s link cleaning, and the controls it is changed with.
+	 *
+	 * @param {Object} config - config
+	 *
+	 * @returns {Object} payload - payload
+	 */
+	payload(config) {
+		const embed = new EmbedBuilder()
+			.setColor(appColor)
+			.setTitle('Link Cleaner')
+			.addFields({
+				name: 'State',
+				value: config.isEnabled ? 'On' : 'Off',
+				inline: true
+			}, {
+				name: 'Previews',
+				value: config.hidesPreviews ? 'Hidden on the tracked message' : 'Left as they are',
+				inline: true
+			}, {
+				name: 'Links cleaned',
+				value: `${config.cleanedLinks}`,
+				inline: true
+			}, {
+				name: 'Last cleaned',
+				value: config.cleanedAt ? `<t:${Math.floor(new Date(config.cleanedAt).getTime() / 1000)}:R>` : 'Never',
+				inline: true
+			})
+			.setFooter({ text: [
+				`Up to ${maxLinks} links per message`,
+				'Shortened links are followed first'
+			].join(' · ') })
+
+		if (!this.isInstalled()) {
+			embed.addFields({
+				name: 'Cleaner',
+				value: 'Not installed — nothing is cleaned until `./install.sh` is run on this instance.'
+			})
+		}
+
+		return { embeds: [embed], components: [this.controls(config)] }
+	}
+
+	/**
+	 * The controls a server’s link cleaning is changed with.
+	 *
+	 * @param {Object} config - config
+	 *
+	 * @returns {ActionRowBuilder} controls - controls
+	 */
+	controls(config) {
+		return new ActionRowBuilder().addComponents(
+			new ButtonBuilder()
+				.setCustomId(`${componentPrefix}toggle`)
+				.setLabel(config.isEnabled ? 'Turn off' : 'Turn on')
+				.setStyle(config.isEnabled ? ButtonStyle.Danger : ButtonStyle.Success),
+			new ButtonBuilder()
+				.setCustomId(`${componentPrefix}previews`)
+				.setLabel(config.hidesPreviews ? 'Keep previews' : 'Hide previews')
+				.setStyle(ButtonStyle.Secondary)
+		)
+	}
+
+	// MARK: - Controls
+	/**
+	 * Handles the selected control.
+	 *
+	 * @param {Interaction} interaction - interaction
+	 *
+	 * @returns {Promise<*>}
+	 */
+	async handleComponent(interaction) {
+		const config = this.config(interaction.guildId)
+
+		if (!config) {
+			return interaction.reply({
+				content: 'Links aren’t cleaned here. Run `/linkcleaner on` to turn it on.',
+				flags: MessageFlags.Ephemeral
+			}).catch(error => console.error(error))
+		}
+
+		switch (interaction.customId.slice(componentPrefix.length)) {
+			case 'toggle': {
+				this.db.run('UPDATE link_cleaner_settings SET isEnabled = ? WHERE guildID = ?', config.isEnabled ? 0 : 1, config.guildID)
+				break
+			}
+			case 'previews': {
+				this.db.run('UPDATE link_cleaner_settings SET hidesPreviews = ? WHERE guildID = ?', config.hidesPreviews ? 0 : 1, config.guildID)
+				break
+			}
+			default: {
+				return interaction.reply({
+					content: `This control is work in progress, or **<@${ownerID}>** made a typo so it wasn’t recognized. Please notify.`,
+					flags: MessageFlags.Ephemeral
+				}).catch(error => console.error(error))
+			}
+		}
+
+		return this.refresh(interaction)
+	}
+
+	/**
+	 * Writes the report the control was pressed on again.
+	 *
+	 * @param {Interaction} interaction - interaction
+	 *
+	 * @returns {Promise<*>}
+	 */
+	async refresh(interaction) {
+		await interaction.deferUpdate()
+			.catch(error => console.error(error))
+
+		return interaction.editReply(this.payload(this.config(interaction.guildId)))
+			.catch(error => console.error(error))
+	}
 }
 
 module.exports = {
-	LinkCleaner: LinkCleaner
+	LinkCleaner: LinkCleaner,
+	linkCleanerComponentPrefix: componentPrefix
 }
