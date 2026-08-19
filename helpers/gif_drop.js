@@ -149,7 +149,7 @@ class GifDropManager {
 
 		const configured = await this.db.get('SELECT COUNT(*) AS channels FROM gif_drop_channels WHERE isEnabled = 1')
 
-		console.log(`🎞️ Dropping anime GIFs in ${configured.channels} channels, at most one every ${intervalHours}h after ${quietGapMinutes}m of silence.`)
+		console.log(`🎞️ Dropping anime GIFs in ${configured.channels} channels, one after every ${intervalHours}h of quiet.`)
 	}
 
 	/** Stops reading the configured channels. */
@@ -276,16 +276,12 @@ class GifDropManager {
 	 * @returns {Promise<?string>} reason - reason
 	 */
 	async blocker(config, messages) {
-		if (!await this.isAwake(config)) {
-			return 'the channel is asleep at this hour'
-		}
-
-		if (this.dueAt(config) > Date.now()) {
-			return `the next drop is due <t:${Math.floor(this.dueAt(config) / 1000)}:R>`
-		}
-
 		if (!messages) {
 			return 'the channel couldn’t be read'
+		}
+
+		if (!await this.isAwake(config)) {
+			return 'the channel is asleep at this hour'
 		}
 
 		if (messages.first()?.id === config.messageID) {
@@ -300,12 +296,18 @@ class GifDropManager {
 
 		const silentMinutes = (Date.now() - latest.createdTimestamp) / 60000
 
-		if (silentMinutes < quietGapMinutes) {
-			return 'a conversation is going on'
-		}
-
 		if (silentMinutes > staleDays * 24 * 60) {
 			return `nobody has written here in ${staleDays} days`
+		}
+
+		const dueAt = this.dueAt(config, latest.createdTimestamp)
+
+		if (dueAt > Date.now()) {
+			return `the next drop is due <t:${Math.floor(dueAt / 1000)}:R>`
+		}
+
+		if (silentMinutes < quietGapMinutes) {
+			return 'a conversation is going on'
 		}
 
 		return null
@@ -546,18 +548,23 @@ class GifDropManager {
 	}
 
 	/**
-	 * The moment a channel is ready for its next drop.
+	 * The moment a channel is ready for its next drop, counted from its newest
+	 * message or drop, whichever came last.
 	 *
 	 * @param {Object} config - config
+	 * @param {?number} activeAt - active at
 	 *
 	 * @returns {number} dueAt - due at
 	 */
-	dueAt(config) {
-		if (!config.droppedAt) {
+	dueAt(config, activeAt) {
+		const droppedAt = config.droppedAt ? new Date(config.droppedAt).getTime() : 0
+		const since = Math.max(droppedAt, activeAt ?? 0)
+
+		if (!since) {
 			return 0
 		}
 
-		return new Date(config.droppedAt).getTime() + (this.intervalOf(config) * 60 + config.jitter) * 60 * 1000
+		return since + (this.intervalOf(config) * 60 + config.jitter) * 60 * 1000
 	}
 
 	/**
@@ -914,7 +921,7 @@ class GifDropManager {
 
 		if (!config) {
 			return interaction.reply({
-				content: 'No channel is set. Run `/gif-drop set` first.',
+				content: 'No channel is set. Run `/gifdrop set` first.',
 				flags: MessageFlags.Ephemeral
 			}).catch(error => console.error(error))
 		}
@@ -948,7 +955,7 @@ class GifDropManager {
 
 		if (!config) {
 			return interaction.reply({
-				content: 'No channel is set. Run `/gif-drop set` to have anime GIFs drop in a channel.',
+				content: 'No channel is set. Run `/gifdrop set` to have anime GIFs drop in a channel.',
 				flags: MessageFlags.Ephemeral
 			}).catch(error => console.error(error))
 		}
@@ -1010,7 +1017,7 @@ class GifDropManager {
 				value: this.forecast(config, target, missing, blocker)
 			})
 			.setFooter({ text: [
-				`Silence needed: ${quietGapMinutes}m`,
+				'Counted from the newest message or drop',
 				this.awakeText(awake),
 				`Paused after ${staleDays} quiet days`
 			].join(' · ') })
@@ -1088,7 +1095,7 @@ class GifDropManager {
 
 		if (!config) {
 			return interaction.reply({
-				content: 'No channel is set. Run `/gif-drop set` to have anime GIFs drop in a channel.',
+				content: 'No channel is set. Run `/gifdrop set` to have anime GIFs drop in a channel.',
 				flags: MessageFlags.Ephemeral
 			}).catch(error => console.error(error))
 		}
@@ -1179,11 +1186,11 @@ class GifDropManager {
 	 */
 	forecast(config, channel, missing, blocker) {
 		if (!config.isEnabled) {
-			return 'Never — drops are off. Run `/gif-drop set` to turn them back on.'
+			return 'Never — drops are off. Run `/gifdrop set` to turn them back on.'
 		}
 
 		if (!channel) {
-			return `Never — <#${config.channelID}> is gone. Run \`/gif-drop set\` to pick another channel.`
+			return `Never — <#${config.channelID}> is gone. Run \`/gifdrop set\` to pick another channel.`
 		}
 
 		if (missing.length) {
