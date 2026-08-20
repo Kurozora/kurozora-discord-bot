@@ -13,17 +13,14 @@ const ownerID = process.env['OWNER_ID']
 /** The minutes between two reads of the configured channels. */
 const tickMinutes = Number(process.env['GIF_DROP_TICK_MINUTES'] ?? 10)
 
-/** The hours between two drops in a channel that answers them. */
+/** The hours of quiet before a drop in a channel that answers them. */
 const intervalHours = Number(process.env['GIF_DROP_INTERVAL_HOURS'] ?? 6)
 
-/** The hours between two drops in a channel that ignores them. */
+/** The hours of quiet before a drop in a channel that ignores them. */
 const maxIntervalHours = Number(process.env['GIF_DROP_MAX_INTERVAL_HOURS'] ?? 48)
 
 /** The minutes a drop is held back by at random. */
 const jitterMinutes = Number(process.env['GIF_DROP_JITTER_MINUTES'] ?? 90)
-
-/** The minutes a channel stays silent before it is dropped in. */
-const quietGapMinutes = Number(process.env['GIF_DROP_QUIET_GAP_MINUTES'] ?? 45)
 
 /** The days a channel may stay silent before its drops pause. */
 const staleDays = Number(process.env['GIF_DROP_STALE_DAYS'] ?? 7)
@@ -306,10 +303,6 @@ class GifDropManager {
 			return `the next drop is due <t:${Math.floor(dueAt / 1000)}:R>`
 		}
 
-		if (silentMinutes < quietGapMinutes) {
-			return 'a conversation is going on'
-		}
-
 		return null
 	}
 
@@ -548,8 +541,7 @@ class GifDropManager {
 	}
 
 	/**
-	 * The moment a channel is ready for its next drop, counted from its newest
-	 * message or drop, whichever came last.
+	 * The moment a channel is ready for its next drop.
 	 *
 	 * @param {Object} config - config
 	 * @param {?number} activeAt - active at
@@ -568,7 +560,7 @@ class GifDropManager {
 	}
 
 	/**
-	 * The hours a channel waits between two drops.
+	 * The hours of quiet a channel needs before a drop.
 	 *
 	 * @param {Object} config - config
 	 *
@@ -878,7 +870,7 @@ class GifDropManager {
 			.catch(error => console.error(error))
 
 		return interaction.editReply({
-			content: `Anime GIFs will drop in <#${channel.id}>, at most one every ${intervalHours} hours and only after ${quietGapMinutes} minutes of silence.`,
+			content: `Anime GIFs will drop in <#${channel.id}>, one after every ${intervalHours} hours of quiet.`,
 			...await this.payload(config)
 		}).catch(error => console.error(error))
 	}
